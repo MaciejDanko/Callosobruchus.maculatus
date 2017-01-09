@@ -16,7 +16,9 @@ source('my.parfm.r')
 source('KS_WEIBULL_BOOT.R')
 
 #Reading and preparing data
-dscdane1=read.csv('dane1.csv')
+dscdane1=try(read.csv('dane1.csv'),silent=T)
+if(class(dscdane1)=='try-error') dscdane1=read.csv('C:/Users/Maciek/Documents/R-PRJ/DariuszMalek/dane1.csv')
+
 names(dscdane1)[1]='mother'
 dscdane1=dscdane1[,-c(6,7,10,11)] # remove not used columns
 dscdane1$sex=as.factor(c('Males','Females')[dscdane1$sex+1]) #originaly Males=0, Females=1
