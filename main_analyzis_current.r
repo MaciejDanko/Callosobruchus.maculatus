@@ -956,8 +956,8 @@ L=sapply(V,function(my.mass) my.predict(sex=NULL,treatment=NULL,bean=NULL,mass=m
 ylim=range(L[-1,])
 plot(x,log(L[,1]),type='l',ylim=log(ylim),ylab='log marginal fitted hazard',xlab='Age',main='Marginal hazard as function of adult body mass',col='white')
 for (j in 1:N) lines(x,log(L[,j]),col=colpal[j])
-lines(x,log(L0),col='darkgreen',lwd=2,lty=1)
-legend('bottomright',legend=c('Adult body mass:',round(V,1),'Whole population'),col=c(NA,colpal,'darkgreen'),lty=c(NA,rep(1,N),1),lwd=c(NA,rep(1,N),2),bty='n')
+lines(x,log(L0),col='green3',lwd=2,lty=1)
+legend('bottomright',legend=c('Adult body mass:',round(V,1),'Whole population'),col=c(NA,colpal,'green3'),lty=c(NA,rep(1,N),1),lwd=c(NA,rep(1,N),2),bty='n')
 
 
 
