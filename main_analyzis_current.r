@@ -881,7 +881,7 @@ my.predict<-function(sex=NULL,treatment=NULL,bean=mean(dscdane1$bean1),mass=mean
 #############################################################################################
 #predicted hazards for different sex and treatments at global mean values for mass1 and bean1
 #This prediction is clearly missleading. Similarly misleading is using global mean values for plotting
-#survivorships as Darek did with survreg
+#survivorships as Darek did with survreg (?)
 #############################################################################################
 #NOT FOR PUBLICATION
 L2=my.predict(sex='Females',treatment='Virgin')
