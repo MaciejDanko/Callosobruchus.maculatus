@@ -429,8 +429,12 @@ D
 #Analysis of Deviance for parfm model
 ###############################################
 
-#the more reliable p-values are based on LRT
-#we can easily manually perform Analysis of Deviance with marginality assumption
+#The p-values returned by parfm are calculated from MLE of parameters and 
+#their assyptotic standar errors ("logL hessian method"). 
+#They are based on Wald t (or t ratio statistic)
+
+#More "reliable" p-values are based on LRT
+#We can easily manually perform Analysis of Deviance with marginality assumption
 
 Mod_excl_sex<-my.parfm(Surv(timesurvived,status) ~  
                          tr + bean1 + mass1 , #both sex and interaction is out
