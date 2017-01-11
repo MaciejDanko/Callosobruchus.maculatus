@@ -429,7 +429,7 @@ D
 #Analysis of Deviance for parfm model
 ###############################################
 
-#The p-values returned by parfm are calculated from MLE of parameters and 
+#The p-values returned in parfm/my.parfm output are calculated from MLE of parameters and 
 #their assyptotic standar errors ("logL hessian method"). 
 #They are based on Wald t (or t ratio statistic)
 
