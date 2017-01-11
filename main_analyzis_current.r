@@ -514,7 +514,7 @@ cbind("Gamma frailty (parfm)"=Mod_[,1][-1],"No frailty (parfm)"=Mod_noFr[,1],"No
 
 #********
 #the predict() function of parfm package returns only estimated frailties for different subjects
-#we will use these frailties for futher analysis
+#we will use these frailties for further analysis
 
 Pr=predict.parfm(Mod_)
 FrailtyVec=sapply(dscdane1$mother, function(k) Pr[names(Pr)==k])
