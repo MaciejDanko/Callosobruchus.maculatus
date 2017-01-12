@@ -21,7 +21,7 @@ dscdane1=try(read.csv('dane1.csv'),silent=T)
 if(class(dscdane1)=='try-error') dscdane1=read.csv('C:/Users/Maciek/Documents/R-PRJ/DariuszMalek/dane1.csv')
 
 names(dscdane1)[1]='mother'
-dscdane1=dscdane1[,-c(6,7,10,11)] # remove not used columns
+dscdane1=dscdane1[,-c(7,10,11)] # remove not used columns
 dscdane1$sex=as.factor(c('Males','Females')[dscdane1$sex+1]) #originaly Males=0, Females=1
 dscdane1$tr=as.factor(c('Virgin','Reproducing')[dscdane1$tr+1]) #originaly Virgin=0, Reproducing=1
 dscdane1$trsex=paste(dscdane1$tr,tolower(dscdane1$sex),sep=' ')
@@ -1188,6 +1188,75 @@ for (j in 1:2) {  # component-plus-residual plots
 dev.off()
 
 #There are some outlayers, however linear fit holds perfectly
+
+########################################################################################
+########################################################################################
+########################################################################################
+# Gift size
+########################################################################################
+########################################################################################
+########################################################################################
+
+head(dscdane1)
+dscdane2=subset(dscdane1,subset=(tr=='Reproducing'))
+dscdane2$Giftsize=abs(dscdane2$Giftsize) #remove minus
+
+#It is hard to guess about interaction, as we have no plot.
+#We can only guess that there could occur interaction between sex and Giftsize
+#We will start from simple model without
+#interactions and perform hierarchical LRT until no significant interaction can be found
+#last time was easy as only one interaction was significant
+Gformula='Surv(timesurvived,status) ~ sex + Giftsize + bean1 + mass1'
+Mod_ADD<-my.parfm(as.formula(Gformula),
+               cluster='mother',
+               frailty='gamma',
+               dist=distr,
+               data = dscdane2)
+gT=attributes(Mod_ADD)$terms
+TwoWayTerms=combn(gT,2) #only two-way interaction will be analized in herarchical LRT
+TwoWayTerms=apply(TwoWayTerms, 2, paste, collapse = ":")
+
+#Hierarchical LRT
+BestModel=Mod_ADD
+ModelsTab=list()
+for (h in seq_along(TwoWayTerms)){
+  ModelList=list()
+  for (j in seq_along(TwoWayTerms)){
+    cat(j,TwoWayTerms[j],'\n')
+    Nformula=paste(Gformula,TwoWayTerms[j],sep=' + ')
+    Mod_test<-my.parfm(as.formula(Nformula),
+                       cluster='mother',
+                       frailty='gamma',
+                       dist=distr,
+                       data = dscdane2)
+    M=list(Fit=Mod_test, LRT=my.LRT(obj1=Mod_test,obj2=BestModel))
+    ModelList=c(ModelList,list(M))
+  }
+  
+  Models=t(sapply(seq_along(ModelList),function(k) ModelList[[k]]$LRT))
+  logLik=(sapply(seq_along(ModelList),function(k) attributes(ModelList[[k]]$Fit)$loglik))
+  Models=cbind(Models,logLikelihood=logLik)
+  rownames(Models)=TwoWayTerms
+  Models=Models[,c(4,1,2,3)]
+  ModelsTab=c(ModelsTab,list(Models))
+  print(Models)
+  #exit if no significant results
+  if (length(Models)>4) p.val=Models[which.max(logLik),4] else p.val=Models[4]
+  if (p.val>0.05) break else BestModel=ModelList[[which.max(logLik)]]$Fit
+  #update general formula, and terms
+  Gformula=paste(Gformula,TwoWayTerms[which.max(logLik)],sep=' + ')
+  TwoWayTerms=TwoWayTerms[-which.max(logLik)]
+  cat('New formula: ',Gformula,'\n')
+}
+
+ModelsTab
+BestModel
+Mod_ADD
+
+
+#plotting effect of GiftSize at different sexes
+#Under Construction
+
 
 #____________________________________________________________________________________________________
 #_____________________________________BONUS__________________________________________________________

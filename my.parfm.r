@@ -80,14 +80,15 @@ my.residuals.parfm<-function(fit, type='martingale'){
 }
 
 #Improved optim function that can solve some convergence problems
-toptim<-function(par,control,method,...,max.times=10,min.times=4) {
+toptim<-function(par,control,method,...,max.times=10,min.times=3) {
+  cat(method,': ')
   orgmethod=method
   control$reltol=(.Machine$double.eps)^0.575
+  cat(1,'(',control$maxit,') ')
   R=stats:::optim(par=par,control=control,method=method,...)
-  cat(method,': ')
   for (j in 1:(max.times-1)) {
     control$maxit=control$maxit*2
-    cat(j,'(',control$maxit,') ')
+    cat(j+1,'(',control$maxit,') ')
     if (R$convergence==10) {
       cat("\nForced switch of the optim method to BFGS\n")
       method="BFGS" 
@@ -318,7 +319,7 @@ my.Mloglikelihood<-function (p, obs, dist, frailty, correct) {
 #   currently not used, init: do.DE.optim=FALSE
 my.parfm<-function (formula, cluster = NULL, strata = NULL, data, inip = NULL, lower=NULL,upper=NULL,
           iniFpar = NULL, dist = "weibull", frailty = "none", method = "BFGS", do.DE.optim=FALSE,
-          maxit = 1000, Fparscale = 1, showtime = TRUE, correct = 0, optim=my.optim)   {
+          maxit = 2500, Fparscale = 1, showtime = TRUE, correct = 0, optim=my.optim)   {
   varcov='Not calculated'
   if (missing(data)) {
     data <- eval(parse(text = paste("data.frame(", paste(all.vars(formula), 
