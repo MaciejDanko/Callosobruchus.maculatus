@@ -345,11 +345,11 @@ write.csv(cbind(Z,round(Mod_,4)),'./results/BasicModel_i_test.csv',row.names=F)
 #in parfm model the intercept is not directly defined, however it is equivalent to lambda value
 
 v=vif.parfm(Mod_,remove='lambda')
-names(v)=Z[4:length(Z)]
+names(v)=Z[-3]
 v
-write.csv(cbind(names(v),round(v,2)),'./results/VIF.csv',row.names=F)
+write.csv(cbind(Ceof=names(v),VIF=round(v,2)),'./results/VIF.csv',row.names=F)
 
-#No strong evidence for colinearity, one value only slightly exceeds 5
+#No strong evidence for colinearity, two values only slightly exceeds 5
 #read: http://www.how2stats.net/2011/09/variance-inflation-factor-vif.html
 
 ####################################################################################################
