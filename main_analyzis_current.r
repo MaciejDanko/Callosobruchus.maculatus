@@ -349,7 +349,7 @@ names(v)=Z[-3]
 v
 write.csv(cbind(Ceof=names(v),VIF=round(v,2)),'./results/VIF.csv',row.names=F)
 
-#No strong evidence for colinearity, two values only slightly exceeds 5
+#No strong evidence for colinearity, two values only slightly exceed 5
 #read: http://www.how2stats.net/2011/09/variance-inflation-factor-vif.html
 
 ####################################################################################################
@@ -1140,6 +1140,54 @@ for (j in 1:N) lines(x,log(L[,j]),col=colpal[j])
 lines(x,log(L0),col='green3',lwd=2,lty=1)
 legend('bottomright',legend=c('Adult body mass:',round(V,1),'Whole population'),col=c(NA,colpal,'green3'),lty=c(NA,rep(1,N),1),lwd=c(NA,rep(1,N),2),bty='n')
 
+###################################################################
+# Analysis of the fit via martingale residuals
+###################################################################
+
+
+residu = my.residuals.parfm(Mod_, type="martingale")
+X = as.matrix(dscdane1[, c("mass1", "bean1")]) # matrix of covariates
+par(mfrow=c(2, 2))
+for (j in 1:2) {  # residual plots
+  plot(X[, j], residu, xlab=c("mass1", "bean1")[j], ylab="Residuals",ylim=c(-6,2))
+  abline(h=0, lty=2)
+  lines(lowess(X[, j], residu, iter=0),col=2)
+  legend('bottomright',c('Linear fit','Lowess'),lty=c(2,1),col=1:2,bty='n')
+}
+
+b = c(Mod_[rownames(Mod_)=="mass1",1],Mod_[rownames(Mod_)=="bean1",1])
+for (j in 1:2) {  # component-plus-residual plots
+  plot(X[, j], b[j]*X[, j] + residu, xlab=c("mass1", "bean1")[j],
+       ylab="Component + residual",ylim=c(-10,-2)+(j-1)*4)
+  abline(lm(b[j]*X[, j] + residu ~ X[, j]), lty=2)
+  lines(lowess(X[, j], b[j]*X[, j] + residu, iter=0),col=2)
+  legend('bottomright',c('Linear fit','Lowess'),lty=c(2,1),col=1:2,bty='n')
+}
+par(mfrow=c(1, 1))
+
+#the same but to file
+tiff(filename='./results/ComponentResidual_plot.tiff',width=res*6,height=res*4,compression ='lzw',res=res,units='px')
+par(oma=c(0,0,0,0))
+par(mar=c(4,4,0.5,0.5))
+par(cex=0.9)
+par(mfrow=c(2, 2))
+for (j in 1:2) {  # residual plots
+  plot(X[, j], residu, xlab=c("mass1", "bean1")[j], ylab="Residuals",ylim=c(-6,2))
+  abline(h=0, lty=2)
+  lines(lowess(X[, j], residu, iter=0),col=2)
+  legend('bottomright',c('Linear fit','Lowess'),lty=c(2,1),col=1:2,bty='n')
+}
+b = c(Mod_[rownames(Mod_)=="mass1",1],Mod_[rownames(Mod_)=="bean1",1])
+for (j in 1:2) {  # component-plus-residual plots
+  plot(X[, j], b[j]*X[, j] + residu, xlab=c("mass1", "bean1")[j],
+       ylab="Component + residual",ylim=c(-10,-2)+(j-1)*4)
+  abline(lm(b[j]*X[, j] + residu ~ X[, j]), lty=2)
+  lines(lowess(X[, j], b[j]*X[, j] + residu, iter=0),col=2)
+  legend('bottomright',c('Linear fit','Lowess'),lty=c(2,1),col=1:2,bty='n')
+}
+dev.off()
+
+#There are some outlayers, however linear fit holds perfectly
 
 #____________________________________________________________________________________________________
 #_____________________________________BONUS__________________________________________________________
@@ -1288,20 +1336,24 @@ par(mfrow=c(1, 1))
 #only relevant for continuous variables: mass1 and bean1
 ###################################################################
 
-res <- residuals(ModCox_, type="martingale")
-X <- as.matrix(dscdane1[, c("mass1", "bean1")]) # matrix of covariates
+res = residuals(ModCox_, type="martingale")
+X = as.matrix(dscdane1[, c("mass1", "bean1")]) # matrix of covariates
 par(mfrow=c(2, 2))
 for (j in 1:2) {  # residual plots
-  plot(X[, j], res, xlab=c("mass1", "bean1")[j], ylab="residuals")
+  plot(X[, j], res, xlab=c("mass1", "bean1")[j], ylab="Residuals")
   abline(h=0, lty=2)
-  lines(lowess(X[, j], res, iter=0))
+  lines(lowess(X[, j], res, iter=0),col=2)
+  legend('bottomright',c('Linear fit','Lowess'),lty=c(2,1),col=1:2,bty='n')
 }
-b <- coef(ModCox_)[c(2,3)]  # regression coefficients
+
+
+b = coef(Mod_)[c(2,3)]  # regression coefficients
 for (j in 1:2) {  # component-plus-residual plots
   plot(X[, j], b[j]*X[, j] + res, xlab=c("mass1", "bean1")[j],
-       ylab="component+residual")
+       ylab="Component + residual")
   abline(lm(b[j]*X[, j] + res ~ X[, j]), lty=2)
-  lines(lowess(X[, j], b[j]*X[, j] + res, iter=0))
+  lines(lowess(X[, j], b[j]*X[, j] + res, iter=0),col=2)
+  legend('bottomright',c('Linear fit','Lowess'),lty=c(2,1),col=1:2,bty='n')
 }
 par(mfrow=c(1, 1))
 

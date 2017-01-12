@@ -43,6 +43,42 @@ vif.parfm<-function (fit,remove=c('theta','rho','lambda')) {
   v
 }
 
+#Function under construction. Calcualtes only martingale now
+#Only Weibull model! "data" must be included in function call
+my.residuals.parfm<-function(fit, type='martingale'){
+  if (attributes(fit)$dist!='weibull') stop('Only weibull implemented so far')
+  formula=attributes(fit)$formula
+  datan=(attributes(fit)$call$data)
+  end=regexpr('~',formula,fixed=T)  -1
+  st=1
+  Z=substr(formula,st,end)
+  if ((length(datan)!=0)&&(nchar(datan)>0)) {
+    S=eval(parse(text=paste('with(data = ',datan,',',Z,')',sep='')))
+  } else{
+    S=eval(parse(text=paste(Z)))
+    stop('Data must be given in function call')
+  }  
+  Time=as.numeric(gsub(' ','',gsub('+','',S,fixed=T)))
+  Status=(!grepl('+',S,fixed=T))*1
+  include.frailty=attributes(fit)$frailty!='none'
+  if (include.frailty){
+    Pr=predict.parfm(fit)
+    Fr=eval(parse(text=paste(datan,'$',attributes(Pr)$clustname,sep='')))
+    FrailtyVec=sapply(Fr, function(k) Pr[names(Pr)==k])
+  } else FrailtyVec=1
+  rho=fit["rho",1]
+  lambda=fit["lambda",1]
+  cum.baseline.haz=lambda*Time^rho
+  data=eval(datan)
+  mm=model.matrix(as.formula(formula),data=data)[,-1]# remove intercept
+  coefi=fit[,1]
+  ind=names(coefi)%in%colnames(mm)
+  coefi=coefi[ind]
+  M=exp(rowSums(mm*(t(matrix(coefi,length(coefi),dim(mm)[1])))))
+  resid=Status-cum.baseline.haz*M*FrailtyVec
+  resid
+}
+
 #Improved optim function that can solve some convergence problems
 toptim<-function(par,control,method,...,max.times=10,min.times=4) {
   orgmethod=method
