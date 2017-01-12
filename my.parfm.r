@@ -15,6 +15,34 @@ my.LRT<-function(obj1,obj2){
   Z
 }
 
+vcov.parfm<-function(fit) attributes(fit)$varcov
+
+vif.parfm<-function (fit,remove=c('theta','rho','lambda')) {
+  #read: Davis CE, Hyde JE, Bangdiwala SI, Nelson JJ: 
+  #An example of dependencies among variables in a conditional 
+  #logistic regression. In Modern Statistical Methods in Chronic Disease Epidemiology, 
+  #Eds SH Moolgavkar and RL Prentice, pp. 140–147. New York: Wiley; 1986.
+  #read: http://www.how2stats.net/2011/09/variance-inflation-factor-vif.html
+  require(Hmisc)
+  v <- vcov.parfm(fit)
+  nam <- dimnames(fit)[[1]]
+  dimnames(v)=list(nam,nam)
+  
+  #there is no intercept so don't have to drop it
+  
+  pos=sapply(remove,function(k) which(nam==k))
+  if (length(pos)>0) {
+    #Droping baseline and frailty parameters on demand
+    v=v[-pos,-pos]
+    nam=nam[-pos]
+  }
+  
+  d <- diag(v)^0.5
+  v <- diag(solve(v/(d %o% d)))
+  names(v) <- nam
+  v
+}
+
 #Improved optim function that can solve some convergence problems
 toptim<-function(par,control,method,...,max.times=10,min.times=4) {
   orgmethod=method
@@ -254,8 +282,8 @@ my.Mloglikelihood<-function (p, obs, dist, frailty, correct) {
 #   currently not used, init: do.DE.optim=FALSE
 my.parfm<-function (formula, cluster = NULL, strata = NULL, data, inip = NULL, lower=NULL,upper=NULL,
           iniFpar = NULL, dist = "weibull", frailty = "none", method = "BFGS", do.DE.optim=FALSE,
-          maxit = 1000, Fparscale = 1, showtime = TRUE, correct = 0, optim=my.optim)   
-{
+          maxit = 1000, Fparscale = 1, showtime = TRUE, correct = 0, optim=my.optim)   {
+  varcov='Not calculated'
   if (missing(data)) {
     data <- eval(parse(text = paste("data.frame(", paste(all.vars(formula), 
                                                          collapse = ", "), ")")))
@@ -554,8 +582,7 @@ my.parfm<-function (formula, cluster = NULL, strata = NULL, data, inip = NULL, l
     var <- coxMod$var
     if (nRpar == 0) {
       seBeta <- NULL
-    }
-    else {
+    } else {
       seBeta <- sqrt(diag(var)[setdiff(names(coxMod$coef), 
                                        c("(Intercept)", "log(scale)", "log(shape)"))])
       PVAL <- c(rep(NA, nFpar + nBpar * obsdata$nstr), 
@@ -601,8 +628,7 @@ my.parfm<-function (formula, cluster = NULL, strata = NULL, data, inip = NULL, l
                                cov = var["log(shape)", "log(shape)"], ses = TRUE)
         STDERR <- c(seAlpha = seAlpha, seKappa = seKappa)
       }
-    }
-    else {
+    } else {
       if (dist == "exponential") {
         seLambda <- sapply(1:obsdata$nstr, function(x) {
           deltamethod(g = ~exp(-x1), mean = logscale[x], 
@@ -665,16 +691,15 @@ my.parfm<-function (formula, cluster = NULL, strata = NULL, data, inip = NULL, l
       }
     }
     STDERR <- c(STDERR, se.beta = seBeta)
-  }
-  else {
-    var <- try(diag(solve(res$hessian)), silent = TRUE)
+  }  else {
+    varcov = solve(res$hessian)
+    var <- try(diag(varcov), silent = TRUE)
     if (class(var) == "try-error") {
       warning(var[1])
       STDERR <- rep(NA, nFpar + nBpar * obsdata$nstr + 
                       nRpar)
       PVAL <- rep(NA, nFpar + nBpar * obsdata$nstr + nRpar)
-    }
-    else {
+    } else {
       if (any(var <= 0)) {
         warning(paste("negative variances have been replaced by NAs\n", 
                       "Please, try other initial values", "or another optimisation method"))
@@ -789,6 +814,7 @@ my.parfm<-function (formula, cluster = NULL, strata = NULL, data, inip = NULL, l
                                                        shared = (nrow(data) > obsdata$ncl), 
                                                        loglik = lL, 
                                                        dist = dist, 
+                                                       varcov = varcov, #varince covaariance matrix added
                                                        cumhaz = attributes(my.Mloglikelihood(p = res$par,
                                                                            obs = obsdata, dist = dist, frailty = frailty, correct = correct))$cumhaz, 
                                                        cumhazT = attributes(my.Mloglikelihood(p = res$par, obs = obsdata, 

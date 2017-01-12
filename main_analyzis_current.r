@@ -170,19 +170,6 @@ dev.off()
 #It seems that there is interaction between treatment and sex. 
 #This interaction will be tested and then included in all models
 
-
-#########################################################
-# Testing colinearity of parameters by mean of cox model
-#########################################################
-#Computes variance inflation factors from the covariance matrix of parameter estimates, 
-#using the method of Davis et al. (1986), which is based on the correlation matrix 
-#from the information matrix
-
-rms:::vif(ModCox_)
-rms:::vif(ModCox_)<5
-
-#No strong colinearity
-
 #############################################################################################
 #############################################################################################
 #############################################################################################
@@ -332,23 +319,50 @@ my.LRT(obj1=Mod_,obj2=NoInter)
 #truly significant!
 #Mod_ is now our basic model
 
+#saving results of the fit
 rownames(Mod_)
 Z=c('Theta (frailty par.)','Rho (Weibull shape par.)','Lambda (Weibull scale par.)','Sex (Males)',
     'Treatment (Virgin)','Bean size','Addult body mass','Interaction (sex:treatment)')
 write.csv(cbind(Z,round(Mod_,4)),'./results/BasicModel_i_test.csv',row.names=F)
 
 
-#parameters of the model will be used as starting values for a "one-step" more complex models
-iniP=c(Mod_[,1][-1],0)
-iniFP=Mod_[1,1]
+#######################################################
+# Testing model colinearity/ variance inflation factor
+######################################################
+#In multiple regression, the variance inflation factor (VIF) is used as an indicator 
+#of multicollinearity. 
+#Higher levels of VIF are known to affect adversely the results associated 
+#with a multiple regression analysis. 
+#VIF specifically indicates the magnitude of the inflation in the standard errors 
+#associated with a particular beta weight that is due to multicollinearity.
 
+#For example, a VIF of 8 implies that the standard errors are larger by a factor of 8 
+#than would otherwise be the case, if there were no inter-correlations between the 
+#predictor of interest and the remaining predictor variables included in 
+#the multiple regression analysis.
 
-##################################
+#The fitted model should have an intercept, but intercept should be removed during vif computations
+#in parfm model the intercept is not directly defined, however it is equivalent to lambda value
+
+v=vif.parfm(Mod_,remove='lambda')
+names(v)=Z[4:length(Z)]
+v
+write.csv(cbind(names(v),round(v,2)),'./results/VIF.csv',row.names=F)
+
+#No strong evidence for colinearity, one value only slightly exceeds 5
+#read: http://www.how2stats.net/2011/09/variance-inflation-factor-vif.html
+
+####################################################################################################
 # Here we test all additional interactions
 # w add an single interaction to the basic model Mod_ and check its significance via LRT
 # The procedure is equivalent to add1() function from stats package
-# We cannot do exhaustive search for a most parsimonious model, because computations would last too long. But see Cox model at the end of this file
-##################################
+# We cannot do exhaustive search for a most parsimonious model, because computations would last too long. 
+# But see Cox model at the end of this file
+##############################################################################################################
+
+#parameters of the model will be used as starting values for a "one-step" more complex models
+iniP=c(Mod_[,1][-1],0)
+iniFP=Mod_[1,1]
 
 ##################################
 #1) testing tr:bean1 interaction
@@ -1243,6 +1257,19 @@ G
 #Schoenfeld residuals
 par(mfrow=c(3,2));plot(G);par(mfrow=c(1,1))
 #No clear departures from linearity
+
+#########################################################
+# Testing colinearity of parameters for cox model
+#########################################################
+#Computes variance inflation factors from the covariance matrix of parameter estimates, 
+#using the method of Davis et al. (1986), which is based on the correlation matrix 
+#from the information matrix
+
+rms:::vif(ModCox_)
+rms:::vif(ModCox_)<5
+
+#No evidence for colinearity
+
 
 ###################################################################
 #Checking model coxph for influential observations
