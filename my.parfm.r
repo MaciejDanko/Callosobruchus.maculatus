@@ -43,11 +43,84 @@ vif.parfm<-function (fit,remove=c('theta','rho','lambda')) {
   v
 }
 
+#function predicting marginal hazard or linear predictor
+#Var.Name = variable name to be substituted
+#Value = new value of this variable
+#Subset = Subset of Data
+#x = an age/time vector
+#Model = model ftted by my.parfm
+
+#rm(list=c('f1','ZZ','mm','j','rho','lambda','Terms','Terms2','T1','T2','ind','k','coefi','new_mm','y'))
+my.predict.fit.parfm<-function(Model,max.x,Data,Var.Name=NULL,Value=NULL,Type=c('marginal','l.p'),Subset=NULL){
+  Type=Type[1]
+  if (length(Subset)>0) Data=subset(Data,Subset)
+  if (missing(Data)) stop('Data must be given')
+  if(!grepl('Surv',attr(Model,'formula'))) {
+    f1=eval(parse(text=attr(Model,'formula')))
+    formula=paste(f1[2],f1[3],sep='~') 
+  } else formula=attr(Model,'formula')
+  if (missing(max.x)) {
+    ZZ=substr(formula,1,regexpr('~',formula,fixed=T)-1)
+    S=eval(parse(text=paste('with(data = Data,',ZZ,')',sep='')))
+    x=sort(unique(as.numeric(gsub(' ','',gsub('+','',S,fixed=T)))))
+    x=seq(0,max(x),1)
+  } else x=seq(0,max.x,1)
+  rho=Model["rho",1]
+  lambda=Model["lambda",1]
+  baseline.haz=lambda*rho*x^(rho-1)
+  mm=model.matrix.default(as.formula(attributes(Model)$formula),data=Data)[,-1]
+  #if (length(Subset)>0) mm=subset(mm,Subset)
+  #coef.val=as.list(Model[,1])
+  Terms=colnames(mm)
+  Terms2=attr(Model,'terms')
+  TermsX=Terms2[!grepl(':',Terms2,fixed=T)]
+  if (length(Terms)!=length(Terms2)) stop('Something wrong')
+  T2=splitstr(':',Terms2); T1=splitstr(':',Terms)
+  if (!all(sapply(seq_along(unlist(T1)),function(k) grepl(unlist(T2)[k],unlist(T1)[k],fixed=T)))) stop('Something wrong')
+  if (length(Var.Name)>0) {
+    if (length(Value)>1) {
+      warning('Only first element of Value was considered')
+    }
+    if (length(Value)==0) stop(paste('Please give Value for',Var.Name))
+    ind.nam=(Terms2==Var.Name)
+    if (sum(ind.nam)==0) stop (paste('Unknown Var.Name, use:  ',paste(TermsX,collapse=', ')))
+    mm[,ind.nam]=Value
+  }
+  #ind.m=sapply(T1,length)==1
+  new_mm=mm*NA
+  for(j in seq_along(T1))
+    if (length(T1[[j]])==1) new_mm[,j]=mm[,j] else new_mm[,j]=rowProds(sapply(seq_along(T1[[j]]),function(k) mm[,Terms%in%T1[[j]][k]]))
+  
+  coefi=Model[,1]
+  ind=names(coefi)%in%colnames(new_mm)
+  coefi=coefi[ind]
+  M=new_mm*(t(matrix(coefi,length(coefi),dim(new_mm)[1])))
+  
+  if (Type=='marginal') {  
+    Pr=predict.parfm(Model)
+    Fr=eval(parse(text=paste('Data','$',attributes(Pr)$clustname,sep='')))
+    ui=sapply(Fr, function(k) Pr[names(Pr)==k])
+    hazMat=(ui*exp(rowSums(M)))%*%t(baseline.haz)
+    cumhazMat=t(apply(hazMat,1,cumsum))
+    survMat=exp(-cumhazMat)
+    y=colSums(hazMat*survMat)/colSums(survMat)
+  } else if (Type=='l.p'){
+    y=sum(M)
+  } else stop('Unknown type')
+  y
+}
+
 #Function under construction. Calcualtes only martingale now
 #Only Weibull model! "data" must be included in function call
+#Fit = model ftted by my.parfm
 my.residuals.parfm<-function(fit, type='martingale'){
   if (attributes(fit)$dist!='weibull') stop('Only weibull implemented so far')
-  formula=attributes(fit)$formula
+  
+  if(!grepl('Surv',attr(Model,'formula'))) {
+    f1=eval(parse(text=attr(Model,'formula')))
+    formula=paste(f1[2],f1[3],sep='~') 
+  } else formula=attr(Model,'formula')
+  
   datan=(attributes(fit)$call$data)
   end=regexpr('~',formula,fixed=T)  -1
   st=1

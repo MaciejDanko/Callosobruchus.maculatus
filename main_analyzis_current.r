@@ -349,7 +349,7 @@ names(v)=Z[-3]
 v
 write.csv(cbind(Ceof=names(v),VIF=round(v,2)),'./results/VIF.csv',row.names=F)
 
-#No strong evidence for colinearity, two values only slightly exceed 5
+#No strong evidence for colinearity, two values only slightly exceed 5. Assumed treshold is 10.
 #read: http://www.how2stats.net/2011/09/variance-inflation-factor-vif.html
 
 ####################################################################################################
@@ -679,8 +679,8 @@ graphics.off()
 include.frailty=T
 if (include.frailty) Model=Mod_ else Model=Mod_noFr
 
-#function to calculate predicted hazards and marginal hazards for Mod_noFr
-my.predict<-function(Data,Model,sex=NULL,treatment=NULL,bean=mean(Data$bean1),mass=mean(Data$mass1),
+#function to calculate predicted hazards and marginal hazards
+naive.predict<-function(Data,Model,sex=NULL,treatment=NULL,bean=mean(Data$bean1),mass=mean(Data$mass1),
                      x=0:max(Data$timesurvived)){
   
   include.frailty=class(try(Model["theta",1],silent=T))!="try-error"
@@ -706,333 +706,8 @@ my.predict<-function(Data,Model,sex=NULL,treatment=NULL,bean=mean(Data$bean1),ma
                          coef.val$trVirgin*tr.c+
                          unname(unlist(coef.val["sexMales:trVirgin"]))*int.c)
     if (include.frailty==T) y=y*mean(FrailtyVec)
-  } else if ((length(sex)>0)&&(length(treatment)>0)&&(length(bean)==0)&&(length(mass)==1)) {
     
-    id=(Data$tr==treatment)&(Data$sex==sex)    
-    if (mass=='mean') mass=mean(Data$mass1[id])
-    
-    haz=list()
-    for (beani in  seq_along(Data$bean1)){
-      beanv=Data$bean1[beani]
-      id=(Data$tr==treatment)&(Data$sex==sex)&(Data$bean1==beanv)    
-      if (sum(id)>0){
-        sex.c=as.data.frame(mm)$sexMales[id][1]
-        tr.c=as.data.frame(mm)$trVirgin[id][1]
-        int.c=unname(unlist(as.data.frame(mm)["sexMales:trVirgin"]))[id][1]
-        if (include.frailty==T) ui=FrailtyVec[id] else ui=1
-        haz=c(haz,list(ui*baseline.haz*exp(coef.val$mass1*mass+
-                                          coef.val$sexMales*sex.c+
-                                          coef.val$bean1*beanv+
-                                          coef.val$trVirgin*tr.c+
-                                          unname(unlist(coef.val["sexMales:trVirgin"]))*int.c)))
-      }
-    }
-    hazMat=sapply(haz,c)
-    survMat=exp(-sapply(haz,cumsum))
-    y=rowSums(hazMat*survMat)/rowSums(survMat)
-    
-  } else if ((length(sex)>0)&&(length(treatment)>0)&&(length(bean)==1)&&(length(mass)==0)) {
-    
-    id=(Data$tr==treatment)&(Data$sex==sex)    
-    if (bean=='mean') bean=mean(Data$bean1[id])
-    
-    haz=list()
-    for (massi in  seq_along(Data$mass1)){
-      massv=Data$mass1[massi]
-      id=(Data$tr==treatment)&(Data$sex==sex)&(Data$mass1==massv)    
-      if (sum(id)>0){
-        sex.c=as.data.frame(mm)$sexMales[id][1]
-        tr.c=as.data.frame(mm)$trVirgin[id][1]
-        int.c=unname(unlist(as.data.frame(mm)["sexMales:trVirgin"]))[id][1]
-        if (include.frailty==T) ui=FrailtyVec[id] else ui=1
-        haz=c(haz,list(ui*baseline.haz*exp(coef.val$mass1*massv+
-                                          coef.val$sexMales*sex.c+
-                                          coef.val$bean1*bean+
-                                          coef.val$trVirgin*tr.c+
-                                          unname(unlist(coef.val["sexMales:trVirgin"]))*int.c)))
-      }
-    }
-    hazMat=sapply(haz,c)
-    survMat=exp(-sapply(haz,cumsum))
-    y=rowSums(hazMat*survMat)/rowSums(survMat)
-  } else if ((length(sex)==0)&&(length(treatment)==0)&&(length(bean)==0)&&(length(mass)==0)) {
-    #marginal model for whole population
-    
-    haz=list()
-    for (massi in  seq_along(Data$mass1))
-      for (beani in  seq_along(Data$bean1)){
-        massv=Data$mass1[massi]
-        beanv=Data$bean1[beani]
-        id=(Data$mass1==massv)&(Data$bean1==beanv)    
-        if (sum(id)>0){
-          sex.c=as.data.frame(mm)$sexMales[id][1]
-          tr.c=as.data.frame(mm)$trVirgin[id][1]
-          int.c=unname(unlist(as.data.frame(mm)["sexMales:trVirgin"]))[id][1]
-          if (include.frailty==T) ui=FrailtyVec[id] else ui=1
-          haz=c(haz,list(ui*baseline.haz*exp(coef.val$mass1*massv+
-                                            coef.val$sexMales*sex.c+
-                                            coef.val$bean1*beanv+
-                                            coef.val$trVirgin*tr.c+
-                                            unname(unlist(coef.val["sexMales:trVirgin"]))*int.c)))
-        }
-      }
-    hazMat=sapply(haz,c)
-    survMat=exp(-sapply(haz,cumsum))
-    y=rowSums(hazMat*survMat)/rowSums(survMat)
-  } else if ((length(sex)>0)&&(length(treatment)>0)&&(length(bean)==0)&&(length(mass)==0)) {
-    
-    haz=list()
-    for (massi in  seq_along(Data$mass1))
-      for (beani in  seq_along(Data$bean1)){
-        massv=Data$mass1[massi]
-        beanv=Data$bean1[beani]
-        id=(Data$tr==treatment)&(Data$sex==sex)&(Data$mass1==massv)&(Data$bean1==beanv)    
-        if (sum(id)>0){
-          sex.c=as.data.frame(mm)$sexMales[id][1]
-          tr.c=as.data.frame(mm)$trVirgin[id][1]
-          int.c=unname(unlist(as.data.frame(mm)["sexMales:trVirgin"]))[id][1]
-          if (include.frailty==T) ui=FrailtyVec[id] else ui=1
-          haz=c(haz,list(baseline.haz*ui*exp(coef.val$mass1*massv+
-                                            coef.val$sexMales*sex.c+
-                                            coef.val$bean1*beanv+
-                                            coef.val$trVirgin*tr.c+
-                                            unname(unlist(coef.val["sexMales:trVirgin"]))*int.c)))
-        }
-      }
-    hazMat=sapply(haz,c)
-    survMat=exp(-sapply(haz,cumsum))
-    y=rowSums(hazMat*survMat)/rowSums(survMat)
-    
-
-  } else if ((length(sex)==0)&&(length(treatment)==0)&&(length(bean)==1)&&(length(mass)==1)) {
-    #Calculate mixture of the hazards
-    
-    idVF=(Data$sex=='Females')&(Data$tr=='Virgin')
-    idRF=(Data$sex=='Females')&(Data$tr=='Reproducing')
-    idVM=(Data$sex=='Males')&(Data$tr=='Virgin')
-    idRM=(Data$sex=='Males')&(Data$tr=='Reproducing')
-    if (bean=='mean') bean.VF=mean(Data$bean1[idVF]) else bean.VF=bean #sorry for copy-paste ;)
-    if (bean=='mean') bean.VM=mean(Data$bean1[idVM]) else bean.VM=bean #I will improve this later
-    if (mass=='mean') mass.VF=mean(Data$mass1[idVF]) else mass.VF=mass
-    if (mass=='mean') mass.VM=mean(Data$mass1[idVM]) else mass.VM=mass
-    if (bean=='mean') bean.RF=mean(Data$bean1[idRF]) else bean.RF=bean
-    if (bean=='mean') bean.RM=mean(Data$bean1[idRM]) else bean.RM=bean
-    if (mass=='mean') mass.RF=mean(Data$mass1[idRF]) else mass.RF=mass
-    if (mass=='mean') mass.RM=mean(Data$mass1[idRM]) else mass.RM=mass
-    
-    sex.c.VF=as.data.frame(mm)$sexMales[idVF][1]
-    tr.c.VF=as.data.frame(mm)$trVirgin[idVF][1]
-    int.c.VF=unname(unlist(as.data.frame(mm)["sexMales:trVirgin"]))[idVF][1]
-    sex.c.RF=as.data.frame(mm)$sexMales[idRF][1]
-    tr.c.RF=as.data.frame(mm)$trVirgin[idRF][1]
-    int.c.RF=unname(unlist(as.data.frame(mm)["sexMales:trVirgin"]))[idRF][1]
-    
-    sex.c.VM=as.data.frame(mm)$sexMales[idVM][1]
-    tr.c.VM=as.data.frame(mm)$trVirgin[idVM][1]
-    int.c.VM=unname(unlist(as.data.frame(mm)["sexMales:trVirgin"]))[idVM][1]
-    sex.c.RM=as.data.frame(mm)$sexMales[idRM][1]
-    tr.c.RM=as.data.frame(mm)$trVirgin[idRM][1]
-    int.c.RM=unname(unlist(as.data.frame(mm)["sexMales:trVirgin"]))[idRM][1]
-    
-    
-    haz.VF=baseline.haz*exp(coef.val$mass1*mass.VF+
-                              coef.val$sexMales*sex.c.VF+
-                              coef.val$bean1*bean.VF+
-                              coef.val$trVirgin*tr.c.VF+
-                              unname(unlist(coef.val["sexMales:trVirgin"]))*int.c.VF)
-    haz.RF=baseline.haz*exp(coef.val$mass1*mass.RF+
-                              coef.val$sexMales*sex.c.RF+
-                              coef.val$bean1*bean.RF+
-                              coef.val$trVirgin*tr.c.RF+
-                              unname(unlist(coef.val["sexMales:trVirgin"]))*int.c.RF)
-    haz.VM=baseline.haz*exp(coef.val$mass1*mass.VM+
-                              coef.val$sexMales*sex.c.VM+
-                              coef.val$bean1*bean.VM+
-                              coef.val$trVirgin*tr.c.VM+
-                              unname(unlist(coef.val["sexMales:trVirgin"]))*int.c.VM)
-    haz.RM=baseline.haz*exp(coef.val$mass1*mass.RM+
-                              coef.val$sexMales*sex.c.RM+
-                              coef.val$bean1*bean.RM+
-                              coef.val$trVirgin*tr.c.RM+
-                              unname(unlist(coef.val["sexMales:trVirgin"]))*int.c.RM)
-    if (include.frailty==T) {
-      ui=mean(FrailtyVec[id]) 
-      warning('Frailty not implemented')
-    } else ui=1
-    LVF=sum(idVF); LRF=sum(idRF); LVM=sum(idVM); LRM=sum(idRM)
-    S=LVF+LVM+LRF+LRM
-    LVF=LVF/S; LRF=LRF/S; LVM=LVM/S; LRM=LRM/S
-    
-    #marginal hazard
-    y=ui*(haz.VF*LVF*exp(-cumsum(haz.VF))+haz.RF*LRF*exp(-cumsum(haz.RF))+
-         haz.VM*LVM*exp(-cumsum(haz.VM))+haz.RM*LRM*exp(-cumsum(haz.RM)))/
-      (LVM*exp(-cumsum(haz.VM))+LRM*exp(-cumsum(haz.RM))+
-         LVF*exp(-cumsum(haz.VF))+LRF*exp(-cumsum(haz.RF)))
-  } else if ((length(sex)==0)&&(length(treatment)==0)&&(length(bean)==1)&&(length(mass)==0)) {
-    #Calculate mixture of the hazards
-    
-    idVF=(Data$sex=='Females')&(Data$tr=='Virgin')
-    idRF=(Data$sex=='Females')&(Data$tr=='Reproducing')
-    idVM=(Data$sex=='Males')&(Data$tr=='Virgin')
-    idRM=(Data$sex=='Males')&(Data$tr=='Reproducing')
-    if (bean=='mean') bean.VF=mean(Data$bean1[idVF]) else bean.VF=bean
-    if (bean=='mean') bean.VM=mean(Data$bean1[idVM]) else bean.VM=bean
-    if (bean=='mean') bean.RF=mean(Data$bean1[idRF]) else bean.RF=bean
-    if (bean=='mean') bean.RM=mean(Data$bean1[idRM]) else bean.RM=bean
-    
-    sex.c.VF=as.data.frame(mm)$sexMales[idVF][1]
-    tr.c.VF=as.data.frame(mm)$trVirgin[idVF][1]
-    int.c.VF=unname(unlist(as.data.frame(mm)["sexMales:trVirgin"]))[idVF][1]
-    sex.c.RF=as.data.frame(mm)$sexMales[idRF][1]
-    tr.c.RF=as.data.frame(mm)$trVirgin[idRF][1]
-    int.c.RF=unname(unlist(as.data.frame(mm)["sexMales:trVirgin"]))[idRF][1]
-    
-    sex.c.VM=as.data.frame(mm)$sexMales[idVM][1]
-    tr.c.VM=as.data.frame(mm)$trVirgin[idVM][1]
-    int.c.VM=unname(unlist(as.data.frame(mm)["sexMales:trVirgin"]))[idVM][1]
-    sex.c.RM=as.data.frame(mm)$sexMales[idRM][1]
-    tr.c.RM=as.data.frame(mm)$trVirgin[idRM][1]
-    int.c.RM=unname(unlist(as.data.frame(mm)["sexMales:trVirgin"]))[idRM][1]
-    
-    haz.VF=list()
-    for (massi in  seq_along(Data$mass1[idVF])){
-      massv=Data$mass1[idVF][massi]
-      if (include.frailty==T) ui=FrailtyVec[idVF][massi] else ui=1
-      haz.VF=c(haz.VF,list(ui*baseline.haz*exp(coef.val$mass1*massv+
-                                              coef.val$sexMales*sex.c.VF+
-                                              coef.val$bean1*bean.VF+
-                                              coef.val$trVirgin*tr.c.VF+
-                                              unname(unlist(coef.val["sexMales:trVirgin"]))*int.c.VF)))
-    }
-    hazMat.VF=sapply(haz.VF,c)
-    survMat.VF=exp(-sapply(haz.VF,cumsum))
-    
-    haz.VM=list()
-    for (massi in  seq_along(Data$mass1[idVM])){
-      massv=Data$mass1[idVM][massi]
-      if (include.frailty==T) ui=FrailtyVec[idVM][massi] else ui=1
-      haz.VM=c(haz.VM,list(ui*baseline.haz*exp(coef.val$mass1*massv+
-                                              coef.val$sexMales*sex.c.VM+
-                                              coef.val$bean1*bean.VM+
-                                              coef.val$trVirgin*tr.c.VM+
-                                              unname(unlist(coef.val["sexMales:trVirgin"]))*int.c.VM)))
-    }
-    hazMat.VM=sapply(haz.VM,c)
-    survMat.VM=exp(-sapply(haz.VM,cumsum))
-    
-    haz.RF=list()
-    for (massi in  seq_along(Data$mass1[idRF])){
-      massv=Data$mass1[idRF][massi]
-      if (include.frailty==T) ui=FrailtyVec[idRF][massi] else ui=1
-      haz.RF=c(haz.RF,list(ui*baseline.haz*exp(coef.val$mass1*massv+
-                                              coef.val$sexMales*sex.c.RF+
-                                              coef.val$bean1*bean.RF+
-                                              coef.val$trVirgin*tr.c.RF+
-                                              unname(unlist(coef.val["sexMales:trVirgin"]))*int.c.RF)))
-    }
-    hazMat.RF=sapply(haz.RF,c)
-    survMat.RF=exp(-sapply(haz.RF,cumsum))
-    
-    haz.RM=list()
-    for (massi in  seq_along(Data$mass1[idRM])){
-      massv=Data$mass1[idRM][massi]
-      if (include.frailty==T) ui=FrailtyVec[idRM][massi] else ui=1
-      haz.RM=c(haz.RM,list(ui*baseline.haz*exp(coef.val$mass1*massv+
-                                              coef.val$sexMales*sex.c.RM+
-                                              coef.val$bean1*bean.RM+
-                                              coef.val$trVirgin*tr.c.RM+
-                                              unname(unlist(coef.val["sexMales:trVirgin"]))*int.c.RM)))
-    }
-    hazMat.RM=sapply(haz.RM,c)
-    survMat.RM=exp(-sapply(haz.RM,cumsum))
-    
-    y=rowSums(cbind(hazMat.RM*survMat.RM,hazMat.VM*survMat.VM,hazMat.RF*survMat.RF,hazMat.VF*survMat.VF))/
-      rowSums(cbind(survMat.RM,survMat.VM,survMat.RF,survMat.VF))
-    
-  } else if ((length(sex)==0)&&(length(treatment)==0)&&(length(bean)==0)&&(length(mass)==1)) {
-    #Calculate mixture of the hazards
-    
-    idVF=(Data$sex=='Females')&(Data$tr=='Virgin')
-    idRF=(Data$sex=='Females')&(Data$tr=='Reproducing')
-    idVM=(Data$sex=='Males')&(Data$tr=='Virgin')
-    idRM=(Data$sex=='Males')&(Data$tr=='Reproducing')
-    if (mass=='mean') mass.VF=mean(Data$mass1[idVF]) else mass.VF=mass
-    if (mass=='mean') mass.VM=mean(Data$mass1[idVM]) else mass.VM=mass
-    if (mass=='mean') mass.RF=mean(Data$mass1[idRF]) else mass.RF=mass
-    if (mass=='mean') mass.RM=mean(Data$mass1[idRM]) else mass.RM=mass
-    
-    sex.c.VF=as.data.frame(mm)$sexMales[idVF][1]
-    tr.c.VF=as.data.frame(mm)$trVirgin[idVF][1]
-    int.c.VF=unname(unlist(as.data.frame(mm)["sexMales:trVirgin"]))[idVF][1]
-    
-    sex.c.RF=as.data.frame(mm)$sexMales[idRF][1]
-    tr.c.RF=as.data.frame(mm)$trVirgin[idRF][1]
-    int.c.RF=unname(unlist(as.data.frame(mm)["sexMales:trVirgin"]))[idRF][1]
-    
-    sex.c.VM=as.data.frame(mm)$sexMales[idVM][1]
-    tr.c.VM=as.data.frame(mm)$trVirgin[idVM][1]
-    int.c.VM=unname(unlist(as.data.frame(mm)["sexMales:trVirgin"]))[idVM][1]
-    
-    sex.c.RM=as.data.frame(mm)$sexMales[idRM][1]
-    tr.c.RM=as.data.frame(mm)$trVirgin[idRM][1]
-    int.c.RM=unname(unlist(as.data.frame(mm)["sexMales:trVirgin"]))[idRM][1]
-    
-    haz.VF=list()
-    for (beani in  seq_along(Data$bean1[idVF])){
-      beanv=Data$bean1[idVF][beani]
-      if (include.frailty==T) ui=FrailtyVec[idVF][beani] else ui=1
-      haz.VF=c(haz.VF,list(ui*baseline.haz*exp(coef.val$mass1*mass.VF+
-                                              coef.val$sexMales*sex.c.VF+
-                                              coef.val$bean1*beanv+
-                                              coef.val$trVirgin*tr.c.VF+
-                                              unname(unlist(coef.val["sexMales:trVirgin"]))*int.c.VF)))
-    }
-    hazMat.VF=sapply(haz.VF,c)
-    survMat.VF=exp(-sapply(haz.VF,cumsum))
-    
-    haz.VM=list()
-    for (beani in  seq_along(Data$bean1[idVM])){
-      beanv=Data$bean1[idVM][beani]
-      if (include.frailty==T) ui=FrailtyVec[idVM][beani] else ui=1
-      haz.VM=c(haz.VM,list(ui*baseline.haz*exp(coef.val$mass1*mass.VM+
-                                              coef.val$sexMales*sex.c.VM+
-                                              coef.val$bean1*beanv+
-                                              coef.val$trVirgin*tr.c.VM+
-                                              unname(unlist(coef.val["sexMales:trVirgin"]))*int.c.VM)))
-    }
-    hazMat.VM=sapply(haz.VM,c)
-    survMat.VM=exp(-sapply(haz.VM,cumsum))
-    
-    haz.RF=list()
-    for (beani in  seq_along(Data$bean1[idRF])){
-      beanv=Data$bean1[idRF][beani]
-      if (include.frailty==T) ui=FrailtyVec[idRF][beani] else ui=1
-      haz.RF=c(haz.RF,list(ui*baseline.haz*exp(coef.val$mass1*mass.RF+
-                                              coef.val$sexMales*sex.c.RF+
-                                              coef.val$bean1*beanv+
-                                              coef.val$trVirgin*tr.c.RF+
-                                              unname(unlist(coef.val["sexMales:trVirgin"]))*int.c.RF)))
-    }
-    hazMat.RF=sapply(haz.RF,c)
-    survMat.RF=exp(-sapply(haz.RF,cumsum))
-    
-    haz.RM=list()
-    for (beani in  seq_along(Data$bean1[idRM])){
-      beanv=Data$bean1[idRM][beani]
-      if (include.frailty==T) ui=FrailtyVec[idRM][beani] else ui=1
-      haz.RM=c(haz.RM,list(ui*baseline.haz*exp(coef.val$mass1*mass.RM+
-                                              coef.val$sexMales*sex.c.RM+
-                                              coef.val$bean1*beanv+
-                                              coef.val$trVirgin*tr.c.RM+
-                                              unname(unlist(coef.val["sexMales:trVirgin"]))*int.c.RM)))
-    }
-    hazMat.RM=sapply(haz.RM,c)
-    survMat.RM=exp(-sapply(haz.RM,cumsum))
-    
-    y=rowSums(cbind(hazMat.RM*survMat.RM,hazMat.VM*survMat.VM,hazMat.RF*survMat.RF,hazMat.VF*survMat.VF))/
-      rowSums(cbind(survMat.RM,survMat.VM,survMat.RF,survMat.VF))
-    
-  } else stop('Combination of argumnts is not implemented')
+  } else stop('Combination of arguments is not implemented')
   y
 }
 
@@ -1042,28 +717,12 @@ my.predict<-function(Data,Model,sex=NULL,treatment=NULL,bean=mean(Data$bean1),ma
 #survivorships as Darek did with survreg (?)
 #############################################################################################
 #NOT FOR PUBLICATION
-L2=my.predict(Data=dscdane1,Model=Model,sex='Females',treatment='Virgin')
-L4=my.predict(Data=dscdane1,Model=Model,sex='Males',treatment='Virgin')
-L1=my.predict(Data=dscdane1,Model=Model,sex='Females',treatment='Reproducing')
-L3=my.predict(Data=dscdane1,Model=Model,sex='Males',treatment='Reproducing')
+L2=naive.predict(Data=dscdane1,Model=Model,sex='Females',treatment='Virgin')
+L4=naive.predict(Data=dscdane1,Model=Model,sex='Males',treatment='Virgin')
+L1=naive.predict(Data=dscdane1,Model=Model,sex='Females',treatment='Reproducing')
+L3=naive.predict(Data=dscdane1,Model=Model,sex='Males',treatment='Reproducing')
 ylim=range(c(L1[-1],L2[-1],L3[-1],L4[-1]))
 plot(x,log(L1),type='l',ylim=log(ylim),ylab='log fitted hazard',xlab='Age',main='Hazard at global mean values of bean and mass ')
-lines(x,log(L2),col=2)
-lines(x,log(L3),col=3)
-lines(x,log(L4),col=4)
-legend('bottomright',legend=U,col=1:4,lty=1,bty='n')
-
-#############################################################################################
-#predicted hazards for different sex and treatments at local (sex/tr - specific) 
-#mean values for mass1 and bean1
-#############################################################################################
-#Better than previous, but these are just curves for hypothetical single individuals, we need curve for sub-populations
-L2=my.predict(Data=dscdane1,Model=Model,sex='Females',treatment='Virgin',mass='mean',bean='mean')
-L4=my.predict(Data=dscdane1,Model=Model,sex='Males',treatment='Virgin',mass='mean',bean='mean')
-L1=my.predict(Data=dscdane1,Model=Model,sex='Females',treatment='Reproducing',mass='mean',bean='mean')
-L3=my.predict(Data=dscdane1,Model=Model,sex='Males',treatment='Reproducing',mass='mean',bean='mean')
-ylim=range(c(L1[-1],L2[-1],L3[-1],L4[-1]))
-plot(x,log(L1),type='l',ylim=log(ylim),ylab='log fitted hazard',xlab='Age',main='Hazard at sex nad treatment specific mean values of bean and mass ')
 lines(x,log(L2),col=2)
 lines(x,log(L3),col=3)
 lines(x,log(L4),col=4)
@@ -1074,11 +733,11 @@ legend('bottomright',legend=U,col=1:4,lty=1,bty='n')
 #calculated as marginal hazards for mass1 and bean1
 #############################################################################################
 #Marginal hazards for bean and mass as a function of sex and treatment, suggested plot for publication
-L0=my.predict(Data=dscdane1,Model=Model,sex=NULL,treatment=NULL,mass=NULL,bean=NULL)
-L2=my.predict(Data=dscdane1,Model=Model,sex='Females',treatment='Virgin',mass=NULL,bean=NULL)
-L4=my.predict(Data=dscdane1,Model=Model,sex='Males',treatment='Virgin',mass=NULL,bean=NULL)
-L1=my.predict(Data=dscdane1,Model=Model,sex='Females',treatment='Reproducing',mass=NULL,bean=NULL)
-L3=my.predict(Data=dscdane1,Model=Model,sex='Males',treatment='Reproducing',mass=NULL,bean=NULL)
+L0=my.predict.fit.parfm(Model=Model,max.x=max(x),Data=dscdane1)
+L2=my.predict.fit.parfm(Model=Model,max.x=max(x),Data=dscdane1,Subset=(dscdane1$sex=='Females')&(dscdane1$tr=='Virgin'))
+L4=my.predict.fit.parfm(Model=Model,max.x=max(x),Data=dscdane1,Subset=(dscdane1$sex=='Males')&(dscdane1$tr=='Virgin'))
+L1=my.predict.fit.parfm(Model=Model,max.x=max(x),Data=dscdane1,Subset=(dscdane1$sex=='Females')&(dscdane1$tr=='Reproducing'))
+L3=my.predict.fit.parfm(Model=Model,max.x=max(x),Data=dscdane1,Subset=(dscdane1$sex=='Males')&(dscdane1$tr=='Reproducing'))
 ylim=range(c(L1[-1],L2[-1],L3[-1],L4[-1]))
 
 tiff(filename='./results/marginal_hazard_1_plot.tiff',width=res*6,height=res*4,compression ='lzw',res=res,units='px')
@@ -1100,13 +759,13 @@ legend('bottomright',legend=c(U,'Whole population'),col=c(1:4,'gold'),lty=c(1,1,
 N=10
 colpal=rev(sapply(seq(1,0.2,len=N),function(k) adjustcolor(col='white',green.f=0,alpha.f=k,red.f=k,blue.f=1-k^2)))
 V=(seq(min(dscdane1$bean1),max(dscdane1$bean1), len=N))
-L=sapply(V,function(my.bean) my.predict(Data=dscdane1,Model=Model,sex=NULL,treatment=NULL,mass=NULL,bean=my.bean))
+L=sapply(V,function(my.bean) my.predict.fit.parfm(Model=Model,Data=dscdane1,Var.Name='bean1',Value=my.bean))
 ylim=range(L[-1,])
 
 tiff(filename='./results/marginal_hazard_2_plot.tiff',width=res*6,height=res*4,compression ='lzw',res=res,units='px')
 par(mar=c(4,4,1,1))
 plot(x,log(L[,1]),type='l',ylim=log(ylim),ylab='log marginal hazard of fitted model',xlab='Age',main='Marginal hazard as function of bean size',col='white')
-for (j in 2:N) lines(x,log(L[,j]),col=colpal[j])
+for (j in 1:N) lines(x,log(L[,j]),col=colpal[j])
 lines(x,log(L0),col='gold',lwd=2,lty=2)
 legend('bottomright',legend=c('Bean size:',round(V,1),'Whole population'),col=c(NA,colpal,'gold'),lty=c(NA,rep(1,N),2),lwd=c(NA,rep(1,N),2),bty='n',cex=0.8)
 dev.off()
@@ -1124,7 +783,8 @@ legend('bottomright',legend=c('Bean size:',round(V,1),'Whole population'),col=c(
 N=10
 V=seq(min(dscdane1$mass1),max(dscdane1$mass1), len=N)
 colpal=rev(sapply(seq(1,0.2,len=N),function(k) adjustcolor(col='white',green.f=0,alpha.f=k,red.f=k,blue.f=1-k^2)))
-L=sapply(V,function(my.mass) my.predict(Data=dscdane1,Model=Model,sex=NULL,treatment=NULL,bean=NULL,mass=my.mass))
+
+L=sapply(V,function(my.mass) my.predict.fit.parfm(Model=Model,Data=dscdane1,Var.Name='mass1',Value=my.mass))
 ylim=range(L[-1,])
 
 tiff(filename='./results/marginal_hazard_3_plot.tiff',width=res*6,height=res*4,compression ='lzw',res=res,units='px')
@@ -1201,17 +861,26 @@ head(dscdane1)
 dscdane2=subset(dscdane1,subset=(tr=='Reproducing'))
 dscdane2$Giftsize=abs(dscdane2$Giftsize) #remove minus
 
+# cor(dscdane2$Giftsize,dscdane2$mass1)
+# plot(dscdane2$Giftsize,dscdane2$mass1)
+# cor(dscdane2$Giftsize,dscdane2$bean1)
+# cor(dscdane2$mass1,dscdane2$bean1)
+# plot(dscdane2$Giftsize~dscdane2$sex)
+# plot(dscdane2$mass1~dscdane2$sex)
+# cor(dscdane2$mass1,as.numeric(dscdane2$sex))
+# plot(dscdane2$bean1~dscdane2$sex)
+
+Gformula='Surv(timesurvived,status) ~ sex + Giftsize + bean1 + mass1 + sex : Giftsize'
+test=my.parfm(as.formula(Gformula),cluster='mother',frailty='gamma',dist=distr,data = dscdane2)
+test
+vif.parfm(test)
 #It is hard to guess about interaction, as we have no plot.
 #We can only guess that there could occur interaction between sex and Giftsize
 #We will start from simple model without
 #interactions and perform hierarchical LRT until no significant interaction can be found
 #last time was easy as only one interaction was significant
 Gformula='Surv(timesurvived,status) ~ sex + Giftsize + bean1 + mass1'
-Mod_ADD<-my.parfm(as.formula(Gformula),
-               cluster='mother',
-               frailty='gamma',
-               dist=distr,
-               data = dscdane2)
+Mod_ADD<-my.parfm(as.formula(Gformula),cluster='mother',frailty='gamma',dist=distr,data = dscdane2)
 gT=attributes(Mod_ADD)$terms
 TwoWayTerms=combn(gT,2) #only two-way interaction will be analized in herarchical LRT
 TwoWayTerms=apply(TwoWayTerms, 2, paste, collapse = ":")
@@ -1224,11 +893,7 @@ for (h in seq_along(TwoWayTerms)){
   for (j in seq_along(TwoWayTerms)){
     cat(j,TwoWayTerms[j],'\n')
     Nformula=paste(Gformula,TwoWayTerms[j],sep=' + ')
-    Mod_test<-my.parfm(as.formula(Nformula),
-                       cluster='mother',
-                       frailty='gamma',
-                       dist=distr,
-                       data = dscdane2)
+    Mod_test<-my.parfm(as.formula(Nformula),cluster='mother',frailty='gamma',dist=distr, data = dscdane2)
     M=list(Fit=Mod_test, LRT=my.LRT(obj1=Mod_test,obj2=BestModel))
     ModelList=c(ModelList,list(M))
   }
@@ -1253,9 +918,31 @@ ModelsTab
 BestModel
 Mod_ADD
 
+vif.parfm(Mod_ADD,remove='lambda')
+vif.parfm(BestModel,remove='lambda')
+#vif is slightly higher than the treshold of 10, but not very much
+
+splitstr<-function(char,txt){
+  (sapply(seq_along(txt),function(j){
+    char=substr(char,1,1)
+    z=gregexpr(char,txt[j])
+    if(z<0){
+      txt[j]
+    } else {
+      st=c(1,z[[1]]+1)
+      en=c(z[[1]],nchar(txt[j])+1)-1
+      gsub(' ','',sapply(seq_along(en),function(k) substr(txt[j],st[k],en[k])),fixed=T)
+    }
+  }))  
+}
+
+rowProds<-function(M) apply(M,1,prod)
+colProds<-function(M) apply(M,2,prod)
 
 #plotting effect of GiftSize at different sexes
-#Under Construction
+Model=test
+Data=dscdane2
+
 
 
 #____________________________________________________________________________________________________
@@ -1383,7 +1070,6 @@ par(mfrow=c(3,2));plot(G);par(mfrow=c(1,1))
 #from the information matrix
 
 rms:::vif(ModCox_)
-rms:::vif(ModCox_)<5
 
 #No evidence for colinearity
 
