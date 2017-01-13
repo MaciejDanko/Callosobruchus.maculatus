@@ -870,10 +870,7 @@ dscdane2$Giftsize=abs(dscdane2$Giftsize) #remove minus
 # cor(dscdane2$mass1,as.numeric(dscdane2$sex))
 # plot(dscdane2$bean1~dscdane2$sex)
 
-Gformula='Surv(timesurvived,status) ~ sex + Giftsize + bean1 + mass1 + sex : Giftsize'
-test=my.parfm(as.formula(Gformula),cluster='mother',frailty='gamma',dist=distr,data = dscdane2)
-test
-vif.parfm(test)
+
 #It is hard to guess about interaction, as we have no plot.
 #We can only guess that there could occur interaction between sex and Giftsize
 #We will start from simple model without
@@ -913,6 +910,7 @@ for (h in seq_along(TwoWayTerms)){
   TwoWayTerms=TwoWayTerms[-which.max(logLik)]
   cat('New formula: ',Gformula,'\n')
 }
+attr(BestModel,'formula')=Gformula
 
 ModelsTab
 BestModel
@@ -922,27 +920,95 @@ vif.parfm(Mod_ADD,remove='lambda')
 vif.parfm(BestModel,remove='lambda')
 #vif is slightly higher than the treshold of 10, but not very much
 
-splitstr<-function(char,txt){
-  (sapply(seq_along(txt),function(j){
-    char=substr(char,1,1)
-    z=gregexpr(char,txt[j])
-    if(z<0){
-      txt[j]
-    } else {
-      st=c(1,z[[1]]+1)
-      en=c(z[[1]],nchar(txt[j])+1)-1
-      gsub(' ','',sapply(seq_along(en),function(k) substr(txt[j],st[k],en[k])),fixed=T)
-    }
-  }))  
+#plotting effect of GiftSize at different sexes
+Model=BestModel
+
+#Data=dscdane2
+test=my.predict.fit.parfm(Model=Model,Data=dscdane2,Var.Name='bean1',Value=150)
+
+#N=10
+#V=(seq(min(dscdane2$Giftsize),max(dscdane2$Giftsize), len=N))
+#V
+
+V=seq(0,0.5,0.05); N=length(V)
+colpal=rev(sapply(seq(1,0.2,len=N),function(k) adjustcolor(col='white',green.f=0,alpha.f=k,red.f=k,blue.f=1-k^2)))
+
+L0.F=my.predict.fit.parfm(Model=Model,max.x=max(x),Data=dscdane2,Subset=dscdane2$sex=='Females')
+L0.M=my.predict.fit.parfm(Model=Model,max.x=max(x),Data=dscdane2,Subset=dscdane2$sex=='Males')
+L.F=sapply(V,function(my.gift) my.predict.fit.parfm(Model=Model,max.x=max(x),Data=dscdane2,Var.Name='Giftsize',Value=my.gift,Subset=dscdane2$sex=='Females'))
+L.M=sapply(V,function(my.gift) my.predict.fit.parfm(Model=Model,max.x=max(x),Data=dscdane2,Var.Name='Giftsize',Value=my.gift,Subset=dscdane2$sex=='Males'))
+ylim=range(L[-1,])
+
+plot(x,log(L[,1]),type='l',ylim=log(ylim),ylab='log marginal hazard',xlab='Age',main='Marginal hazard as function of gift size',col='white')
+for (j in 2:N) lines(x,log(L.F[,j]),col=colpal[j])
+for (j in 2:N) lines(x,log(L.M[,j]),col=colpal[j],lty=2)
+
+lines(x,log(L0.M),col='blue3',lwd=2,lty=2)
+lines(x,log(L0.F),col='green2',lwd=2,lty=1)
+legend('topleft',c('Females','Males'),col=c('green2','blue3'),lty=1:2,lwd=2,bty='n')
+legend('bottomright',legend=c('Gift size:',round(V,2)),col=c(NA,colpal),lty=c(NA,rep(1,N)),lwd=c(NA,rep(1,N)),bty='n')
+
+
+tiff(filename='./results/GiftModel_marginal_hazard_giftsize_plot.tiff',width=res*6,height=res*4,compression ='lzw',res=res,units='px')
+par(mar=c(4,4,1,1))
+plot(x,log(L[,1]),type='l',ylim=log(ylim),ylab='log marginal hazard',xlab='Age',main='Marginal hazard as function of gift size',col='white')
+for (j in 2:N) lines(x,log(L.F[,j]),col=colpal[j])
+for (j in 2:N) lines(x,log(L.M[,j]),col=colpal[j],lty=2)
+lines(x,log(L0.M),col='blue3',lwd=2,lty=2)
+lines(x,log(L0.F),col='green2',lwd=2,lty=1)
+legend('topleft',c('Females','Males'),col=c('green2','blue3'),lty=1:2,lwd=2,bty='n')
+legend('bottomright',legend=c('Gift size:',round(V,2)),col=c(NA,colpal),lty=c(NA,rep(1,N)),lwd=c(NA,rep(1,N)),bty='n',cex=0.75)
+dev.off()
+
+
+###################################################################
+# Analysis of the fit of Gift model via martingale residuals
+###################################################################
+
+residu = my.residuals.parfm(Model, type="martingale")
+X = as.matrix(dscdane2[, c("mass1", "bean1", "Giftsize")]) # matrix of covariates
+
+par(mfrow=c(2, 3))
+for (j in 1:3) {  # residual plots
+  plot(X[, j], residu, xlab=c("Aduld body mass", "Bean size", "Gift size")[j], ylab="Residuals",ylim=c(-6,2))
+  abline(h=0, lty=2)
+  lines(lowess(X[, j], residu, iter=0),col=2)
+  legend('bottomright',c('Linear fit','Lowess'),lty=c(2,1),col=1:2,bty='n')
 }
 
-rowProds<-function(M) apply(M,1,prod)
-colProds<-function(M) apply(M,2,prod)
+b = c(Model[rownames(Model)=="mass1",1],Model[rownames(Model)=="bean1",1],Model[rownames(Model)=="Giftsize",1])
+for (j in 1:3) {  # component-plus-residual plots
+  plot(X[, j], b[j]*X[, j] + residu, xlab=c("Aduld body mass", "Bean size", "Gift size")[j],
+       ylab="Component + residual",ylim=c(-6,2))
+  abline(lm(b[j]*X[, j] + residu ~ X[, j]), lty=2)
+  lines(lowess(X[, j], b[j]*X[, j] + residu, iter=0),col=2)
+  legend('bottomright',c('Linear fit','Lowess'),lty=c(2,1),col=1:2,bty='n')
+}
+par(mfrow=c(1, 1))
 
-#plotting effect of GiftSize at different sexes
-Model=test
-Data=dscdane2
+#the same but to file
+tiff(filename='./results/GiftModel_ComponentResidual_plot.tiff',width=res*6,height=res*4,compression ='lzw',res=res,units='px')
+par(oma=c(0,0,0,0))
+par(mar=c(4,4,0.5,0.5))
+par(cex=0.9)
+par(mfrow=c(2, 3))
+for (j in 1:3) {  # residual plots
+  plot(X[, j], residu, xlab=c("Aduld body mass", "Bean size", "Gift size")[j], ylab="Residuals",ylim=c(-6,2))
+  abline(h=0, lty=2)
+  lines(lowess(X[, j], residu, iter=0),col=2)
+  legend('bottomright',c('Linear fit','Lowess'),lty=c(2,1),col=1:2,bty='n')
+}
 
+b = c(Model[rownames(Model)=="mass1",1],Model[rownames(Model)=="bean1",1],Model[rownames(Model)=="Giftsize",1])
+for (j in 1:3) {  # component-plus-residual plots
+  plot(X[, j], b[j]*X[, j] + residu, xlab=c("Aduld body mass", "Bean size", "Gift size")[j],
+       ylab="Component + residual",ylim=c(-6,2))
+  abline(lm(b[j]*X[, j] + residu ~ X[, j]), lty=2)
+  lines(lowess(X[, j], b[j]*X[, j] + residu, iter=0),col=2)
+  legend('bottomright',c('Linear fit','Lowess'),lty=c(2,1),col=1:2,bty='n')
+}
+
+dev.off()
 
 
 #____________________________________________________________________________________________________

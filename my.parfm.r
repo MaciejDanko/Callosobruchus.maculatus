@@ -43,6 +43,24 @@ vif.parfm<-function (fit,remove=c('theta','rho','lambda')) {
   v
 }
 
+
+splitstr<-function(char,txt){
+  (sapply(seq_along(txt),function(j){
+    char=substr(char,1,1)
+    z=gregexpr(char,txt[j])
+    if(z<0){
+      txt[j]
+    } else {
+      st=c(1,z[[1]]+1)
+      en=c(z[[1]],nchar(txt[j])+1)-1
+      gsub(' ','',sapply(seq_along(en),function(k) substr(txt[j],st[k],en[k])),fixed=T)
+    }
+  }))  
+}
+
+rowProds<-function(M) apply(M,1,prod)
+colProds<-function(M) apply(M,2,prod)
+
 #function predicting marginal hazard or linear predictor
 #Var.Name = variable name to be substituted
 #Value = new value of this variable
@@ -56,6 +74,7 @@ my.predict.fit.parfm<-function(Model,max.x,Data,Var.Name=NULL,Value=NULL,Type=c(
   if (length(Subset)>0) Data=subset(Data,Subset)
   if (missing(Data)) stop('Data must be given')
   if(!grepl('Surv',attr(Model,'formula'))) {
+    warning('formula should be specified explicitely, trying recovering it, but errors can occur.')
     f1=eval(parse(text=attr(Model,'formula')))
     formula=paste(f1[2],f1[3],sep='~') 
   } else formula=attr(Model,'formula')
@@ -69,8 +88,6 @@ my.predict.fit.parfm<-function(Model,max.x,Data,Var.Name=NULL,Value=NULL,Type=c(
   lambda=Model["lambda",1]
   baseline.haz=lambda*rho*x^(rho-1)
   mm=model.matrix.default(as.formula(attributes(Model)$formula),data=Data)[,-1]
-  #if (length(Subset)>0) mm=subset(mm,Subset)
-  #coef.val=as.list(Model[,1])
   Terms=colnames(mm)
   Terms2=attr(Model,'terms')
   TermsX=Terms2[!grepl(':',Terms2,fixed=T)]
@@ -116,15 +133,14 @@ my.predict.fit.parfm<-function(Model,max.x,Data,Var.Name=NULL,Value=NULL,Type=c(
 my.residuals.parfm<-function(fit, type='martingale'){
   if (attributes(fit)$dist!='weibull') stop('Only weibull implemented so far')
   
-  if(!grepl('Surv',attr(Model,'formula'))) {
-    f1=eval(parse(text=attr(Model,'formula')))
+  if(!grepl('Surv',attr(fit,'formula'))) {
+    warning('formula should be specified explicitely, trying recovering it, but errors can occur.')
+    f1=eval(parse(text=attr(fit,'formula')))
     formula=paste(f1[2],f1[3],sep='~') 
-  } else formula=attr(Model,'formula')
+  } else formula=attr(fit,'formula')
   
   datan=(attributes(fit)$call$data)
-  end=regexpr('~',formula,fixed=T)  -1
-  st=1
-  Z=substr(formula,st,end)
+  Z=substr(formula,1,regexpr('~',formula,fixed=T)-1)
   if ((length(datan)!=0)&&(nchar(datan)>0)) {
     S=eval(parse(text=paste('with(data = ',datan,',',Z,')',sep='')))
   } else{
