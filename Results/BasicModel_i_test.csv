@@ -1,9 +1,9 @@
-,ESTIMATE,SE,p-val
-Theta (frailty par.),0.1572,0.1290,
-Rho (Weibull shape par.),4.7296,0.3877,
-Lambda (Weibull scale par.),0.0026,0.0036,
-Sex (Males),-2.8240,0.4835,0.0000
-Treatment (Virgin),-4.5469,0.4850,0.0000
-Bean size,0.0011,0.0031,0.7263
-Addult body mass,-0.6894,0.1998,0.0006
-Interaction (sex:treatment),3.8895,0.5384,0.0000
+"Z","ESTIMATE","SE","p-val"
+"Theta (frailty par.)","0.1572","0.129",NA
+"Rho (Weibull shape par.)","4.7296","0.3877",NA
+"Lambda (Weibull scale par.)","0.0026","0.0036",NA
+"Sex (Males)","-2.824","0.4835","0"
+"Treatment (Virgin)","-4.5469","0.485","0"
+"Bean size","0.0011","0.0031","0.7263"
+"Addult body mass","-0.6894","0.1998","6e-04"
+"Interaction (sex:treatment)","3.8895","0.5384","0"

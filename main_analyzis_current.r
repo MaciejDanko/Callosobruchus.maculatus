@@ -568,9 +568,6 @@ D=as.matrix(sort(u))
 colnames(D)='Frailty'
 D
 
-
-#Addiding frailty to data
-
 ##################################################################################################
 ##################################################################################################
 
@@ -659,7 +656,9 @@ logscale <- as.numeric(noFr$coef[substr(names(noFr$coef), 5, 9) == "scale"])
 we=exp(c(logshape, -exp(logshape) * logscale))
 
 #tale with comparison
-cbind("Gamma frailty (parfm)"=Mod_[,1][-1],"No frailty (parfm)"=Mod_noFr[,1],"No frailty (phreg)"=c(we,coef(noFr)[c(-L,-L+1)]))
+Tab=round(cbind("Gamma frailty (parfm)"=Mod_[,1][-1],"No frailty (parfm)"=Mod_noFr[,1],"No frailty (phreg)"=c(we,coef(noFr)[c(-L,-L+1)])),3)
+Tab
+#Very similar estimates for methods with and without frailty
 
 #********
 #the predict() function of parfm package returns only estimated frailties for different subjects
@@ -678,55 +677,7 @@ graphics.off()
 
 include.frailty=T
 if (include.frailty) Model=Mod_ else Model=Mod_noFr
-
-#function to calculate predicted hazards and marginal hazards
-naive.predict<-function(Data,Model,sex=NULL,treatment=NULL,bean=mean(Data$bean1),mass=mean(Data$mass1),
-                     x=0:max(Data$timesurvived)){
-  
-  include.frailty=class(try(Model["theta",1],silent=T))!="try-error"
-  if(include.frailty) cat('Frailty included\n')
-  
-  rho=Model["rho",1]
-  lambda=Model["lambda",1]
-  baseline.haz=lambda*rho*x^(rho-1)
-  mm=model.matrix(Formula,data=Data)
-  coef.val=as.list(Model[,1])
-  
-  if ((length(sex)>0)&&(length(treatment)>0)&&(length(bean)==1)&&(length(mass)==1)) {
-    #Single estimates, 
-    id=(Data$tr==treatment)&(Data$sex==sex)    
-    if (bean=='mean') bean=mean(Data$bean1[id])
-    if (mass=='mean') mass=mean(Data$mass1[id])
-    sex.c=as.data.frame(mm)$sexMales[id][1]
-    tr.c=as.data.frame(mm)$trVirgin[id][1]
-    int.c=unname(unlist(as.data.frame(mm)["sexMales:trVirgin"]))[id][1]
-    y=baseline.haz*exp(coef.val$mass1*mass+
-                         coef.val$sexMales*sex.c+
-                         coef.val$bean1*bean+
-                         coef.val$trVirgin*tr.c+
-                         unname(unlist(coef.val["sexMales:trVirgin"]))*int.c)
-    if (include.frailty==T) y=y*mean(FrailtyVec)
-    
-  } else stop('Combination of arguments is not implemented')
-  y
-}
-
-#############################################################################################
-#predicted hazards for different sex and treatments at global mean values for mass1 and bean1
-#This prediction is clearly missleading. Similarly misleading is using global mean values for plotting
-#survivorships as Darek did with survreg (?)
-#############################################################################################
-#NOT FOR PUBLICATION
-L2=naive.predict(Data=dscdane1,Model=Model,sex='Females',treatment='Virgin')
-L4=naive.predict(Data=dscdane1,Model=Model,sex='Males',treatment='Virgin')
-L1=naive.predict(Data=dscdane1,Model=Model,sex='Females',treatment='Reproducing')
-L3=naive.predict(Data=dscdane1,Model=Model,sex='Males',treatment='Reproducing')
-ylim=range(c(L1[-1],L2[-1],L3[-1],L4[-1]))
-plot(x,log(L1),type='l',ylim=log(ylim),ylab='log fitted hazard',xlab='Age',main='Hazard at global mean values of bean and mass ')
-lines(x,log(L2),col=2)
-lines(x,log(L3),col=3)
-lines(x,log(L4),col=4)
-legend('bottomright',legend=U,col=1:4,lty=1,bty='n')
+x=0:max(dscdane1$timesurvived)
 
 #############################################################################################
 #predicted marginal hazards for different sex and treatments 
@@ -742,7 +693,7 @@ ylim=range(c(L1[-1],L2[-1],L3[-1],L4[-1]))
 
 tiff(filename='./results/marginal_hazard_1_plot.tiff',width=res*6,height=res*4,compression ='lzw',res=res,units='px')
 par(mar=c(4,4,1,1))
-plot(x,log(L1),type='l',ylim=log(ylim),ylab='log marginal hazard of fitted model',xlab='Age',main='')
+plot(x,log(L1),type='l',ylim=log(ylim),ylab='log of marginal hazard',xlab='Age',main='')
 lines(x,log(L2),col=2);lines(x,log(L3),col=3);lines(x,log(L4),col=4);lines(x,log(L0),col='gold',lwd=2,lty=2)
 legend('bottomright',legend=c(U,'Whole population'),col=c(1:4,'gold'),lty=c(1,1,1,1,2),lwd=c(1,1,1,1,2),bty='n',cex=0.8)
 dev.off()
@@ -764,7 +715,7 @@ ylim=range(L[-1,])
 
 tiff(filename='./results/marginal_hazard_2_plot.tiff',width=res*6,height=res*4,compression ='lzw',res=res,units='px')
 par(mar=c(4,4,1,1))
-plot(x,log(L[,1]),type='l',ylim=log(ylim),ylab='log marginal hazard of fitted model',xlab='Age',main='',col='white')
+plot(x,log(L[,1]),type='l',ylim=log(ylim),ylab='log of marginal hazard',xlab='Age',main='',col='white')
 for (j in 1:N) lines(x,log(L[,j]),col=colpal[j])
 lines(x,log(L0),col='gold',lwd=2,lty=2)
 legend('bottomright',legend=c('Bean size:',round(V,1),'Whole population'),col=c(NA,colpal,'gold'),lty=c(NA,rep(1,N),2),lwd=c(NA,rep(1,N),2),bty='n',cex=0.8)
@@ -789,7 +740,7 @@ ylim=range(L[-1,])
 
 tiff(filename='./results/marginal_hazard_3_plot.tiff',width=res*6,height=res*4,compression ='lzw',res=res,units='px')
 par(mar=c(4,4,1,1))
-plot(x,log(L[,1]),type='l',ylim=log(ylim),ylab='log marginal hazard of fitted model',xlab='Age',main='',col='white')
+plot(x,log(L[,1]),type='l',ylim=log(ylim),ylab='log of marginal hazard',xlab='Age',main='',col='white')
 for (j in 1:N) lines(x,log(L[,j]),col=colpal[j])
 lines(x,log(L0),col='green3',lwd=2,lty=1)
 legend('bottomright',legend=c('Adult body mass:',round(V,1),'Whole population'),col=c(NA,colpal,'green3'),lty=c(NA,rep(1,N),1),lwd=c(NA,rep(1,N),2),bty='n',cex=0.8)
@@ -803,7 +754,6 @@ legend('bottomright',legend=c('Adult body mass:',round(V,1),'Whole population'),
 ###################################################################
 # Analysis of the fit via martingale residuals
 ###################################################################
-
 
 residu = my.residuals.parfm(Mod_, type="martingale")
 X = as.matrix(dscdane1[, c("mass1", "bean1")]) # matrix of covariates
@@ -859,23 +809,21 @@ dev.off()
 
 head(dscdane1)
 dscdane2=subset(dscdane1,subset=(tr=='Reproducing'))
-dscdane2$Giftsize=abs(dscdane2$Giftsize) #remove minus
+dscdane2$Giftsize=abs(dscdane2$Giftsize) #remove minus from the data
 
-# cor(dscdane2$Giftsize,dscdane2$mass1)
-# plot(dscdane2$Giftsize,dscdane2$mass1)
-# cor(dscdane2$Giftsize,dscdane2$bean1)
-# cor(dscdane2$mass1,dscdane2$bean1)
-# plot(dscdane2$Giftsize~dscdane2$sex)
-# plot(dscdane2$mass1~dscdane2$sex)
-# cor(dscdane2$mass1,as.numeric(dscdane2$sex))
-# plot(dscdane2$bean1~dscdane2$sex)
+#Testing some correlations, substancial correlations can affect model estimation
+cor(dscdane2$Giftsize,dscdane2$mass1)
+cor(dscdane2$Giftsize,dscdane2$bean1)
+cor(dscdane2$mass1,dscdane2$bean1)
 
+########################################################################################
 
 #It is hard to guess about interaction, as we have no plot.
 #We can only guess that there could occur interaction between sex and Giftsize
 #We will start from simple model without
 #interactions and perform hierarchical LRT until no significant interaction can be found
-#last time was easy as only one interaction was significant
+#last time was easy as only one interaction was significant and immediately visible from plot
+
 Gformula='Surv(timesurvived,status) ~ sex + Giftsize + bean1 + mass1'
 Mod_ADD<-my.parfm(as.formula(Gformula),cluster='mother',frailty='gamma',dist=distr,data = dscdane2)
 gT=attributes(Mod_ADD)$terms
@@ -884,6 +832,7 @@ TwoWayTerms=apply(TwoWayTerms, 2, paste, collapse = ":")
 
 #Hierarchical LRT
 BestModel=Mod_ADD
+BestFormula=Gformula
 ModelsTab=list()
 for (h in seq_along(TwoWayTerms)){
   ModelList=list()
@@ -904,47 +853,58 @@ for (h in seq_along(TwoWayTerms)){
   print(Models)
   #exit if no significant results
   if (length(Models)>4) p.val=Models[which.max(logLik),4] else p.val=Models[4]
-  if (p.val>0.05) break else BestModel=ModelList[[which.max(logLik)]]$Fit
   #update general formula, and terms
+  if (p.val>0.05) break 
   Gformula=paste(Gformula,TwoWayTerms[which.max(logLik)],sep=' + ')
+  BestModel=ModelList[[which.max(logLik)]]$Fit
+  BestFormula=Gformula
   TwoWayTerms=TwoWayTerms[-which.max(logLik)]
   cat('New formula: ',Gformula,'\n')
 }
-attr(BestModel,'formula')=Gformula
+
+attr(BestModel,'formula')=BestFormula
 
 ModelsTab
-to.save=rbind(cbind(rownames(ModelsTab[[1]]),ModelsTab[[1]]),
+
+#rename rows for saving
+RN1=c('Sex : gift size','Sex : bean size','Sex : Adult body mass','Gift size : bean size',
+  'Gift size : Adult body mass', 'Bean size : Adult body mass')
+#checking
+cbind(rownames(ModelsTab[[1]]),RN1)
+
+#rename rows for saving
+RN2=c('Sex : bean size','Sex : Adult body mass','Gift size : bean size',
+      'Gift size : Adult body mass', 'Bean size : Adult body mass')
+#checking
+cbind(rownames(ModelsTab[[2]]),RN2)
+
+
+to.save=rbind(cbind(RN1,ModelsTab[[1]]),
               rep('',5),
               rep('',5),
               rep('',5),
               c('',colnames(ModelsTab[[1]])),
-              cbind(rownames(ModelsTab[[2]]),ModelsTab[[2]]))
+              cbind(RN2,ModelsTab[[2]]))
 write.csv(to.save,'./results/GiftSize_Model_Select.csv',row.names=F)
-BestModel
-Mod_ADD
 
+#Saving best model
+BestModel
 rownames(BestModel)
 Z=c('Theta (frailty par.)','Rho (Weibull shape par.)','Lambda (Weibull scale par.)','Sex (Males)',
-    'Bean size','Addult body mass','Gift size','Interaction (sex:Gift size)')
+    'Bean size','Addult body mass','Gift size','Interaction (sex : gift size)')
 write.csv(cbind(Z,round(BestModel,4)),'./results/Gift_BestModel.csv',row.names=F)
 
-
-vif.parfm(Mod_ADD,remove='lambda')
+#testing variance inflation factor
 vif.parfm(BestModel,remove='lambda')
 #vif is slightly higher than the treshold of 10, but not very much
 
+##############################################################
 #plotting effect of GiftSize at different sexes
-Model=BestModel
-
-#Data=dscdane2
-test=my.predict.fit.parfm(Model=Model,Data=dscdane2,Var.Name='bean1',Value=150)
-
-#N=10
-#V=(seq(min(dscdane2$Giftsize),max(dscdane2$Giftsize), len=N))
-#V
-
+##############################################################
 
 #################### Animation for presentation + final plot ##########################
+Model=BestModel
+x=0:max(dscdane2$timesurvived)
 range(dscdane2$Giftsize) #take value from rounded range
 V=seq(0,0.55,0.05); N=length(V)
 colpal=rev(sapply(seq(1,0.2,len=N),function(k) adjustcolor(col='white',green.f=0,alpha.f=k,red.f=k,blue.f=1-k^2)))
@@ -962,7 +922,7 @@ for (anim in c(0.15,0.35,0.55,0.55)) {
   
   tiff(filename=paste('./results/GiftModel_marginal_hazard_giftsize_anim_f',fram,'.tiff',sep=''),width=res*6,height=res*4,compression ='lzw',res=res,units='px')
   par(mar=c(4,4,1,1))
-  plot(x,log(L[,1]),type='l',ylim=log(ylim),ylab='log marginal hazard',xlab='Age',main='',col='white')
+  plot(x,log(L0.F),type='l',ylim=log(ylim),ylab='log marginal hazard',xlab='Age',main='',col='white')
   for (j in 1:N) lines(x,log(L.F[,j]),col=colpal[j])
   for (j in 1:N) lines(x,log(L.M[,j]),col=colpal[j],lty=2)
   if (fram==4) lines(x,log(L0.M),col='blue3',lwd=3,lty=2)

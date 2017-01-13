@@ -69,7 +69,7 @@ colProds<-function(M) apply(M,2,prod)
 #Model = model ftted by my.parfm
 
 #rm(list=c('f1','ZZ','mm','j','rho','lambda','Terms','Terms2','T1','T2','ind','k','coefi','new_mm','y'))
-my.predict.fit.parfm<-function(Model,max.x,Data,Var.Name=NULL,Value=NULL,Type=c('marginal','l.p'),Subset=NULL){
+my.predict.fit.parfm<-function(Model,Data,max.x=NULL,Var.Name=NULL,Value=NULL,Type=c('marginal','l.p'),Subset=NULL){
   Type=Type[1]
   if (length(Subset)>0) Data=subset(Data,Subset)
   if (missing(Data)) stop('Data must be given')
@@ -78,7 +78,7 @@ my.predict.fit.parfm<-function(Model,max.x,Data,Var.Name=NULL,Value=NULL,Type=c(
     f1=eval(parse(text=attr(Model,'formula')))
     formula=paste(f1[2],f1[3],sep='~') 
   } else formula=attr(Model,'formula')
-  if (missing(max.x)) {
+  if (length(max.x)==0) {
     ZZ=substr(formula,1,regexpr('~',formula,fixed=T)-1)
     S=eval(parse(text=paste('with(data = Data,',ZZ,')',sep='')))
     x=sort(unique(as.numeric(gsub(' ','',gsub('+','',S,fixed=T)))))
