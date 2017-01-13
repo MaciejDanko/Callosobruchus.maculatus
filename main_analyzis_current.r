@@ -742,7 +742,7 @@ ylim=range(c(L1[-1],L2[-1],L3[-1],L4[-1]))
 
 tiff(filename='./results/marginal_hazard_1_plot.tiff',width=res*6,height=res*4,compression ='lzw',res=res,units='px')
 par(mar=c(4,4,1,1))
-plot(x,log(L1),type='l',ylim=log(ylim),ylab='log marginal hazard of fitted model',xlab='Age',main='Marginal hazard for bean, mass, and frailty')
+plot(x,log(L1),type='l',ylim=log(ylim),ylab='log marginal hazard of fitted model',xlab='Age',main='')
 lines(x,log(L2),col=2);lines(x,log(L3),col=3);lines(x,log(L4),col=4);lines(x,log(L0),col='gold',lwd=2,lty=2)
 legend('bottomright',legend=c(U,'Whole population'),col=c(1:4,'gold'),lty=c(1,1,1,1,2),lwd=c(1,1,1,1,2),bty='n',cex=0.8)
 dev.off()
@@ -764,14 +764,14 @@ ylim=range(L[-1,])
 
 tiff(filename='./results/marginal_hazard_2_plot.tiff',width=res*6,height=res*4,compression ='lzw',res=res,units='px')
 par(mar=c(4,4,1,1))
-plot(x,log(L[,1]),type='l',ylim=log(ylim),ylab='log marginal hazard of fitted model',xlab='Age',main='Marginal hazard as function of bean size',col='white')
+plot(x,log(L[,1]),type='l',ylim=log(ylim),ylab='log marginal hazard of fitted model',xlab='Age',main='',col='white')
 for (j in 1:N) lines(x,log(L[,j]),col=colpal[j])
 lines(x,log(L0),col='gold',lwd=2,lty=2)
 legend('bottomright',legend=c('Bean size:',round(V,1),'Whole population'),col=c(NA,colpal,'gold'),lty=c(NA,rep(1,N),2),lwd=c(NA,rep(1,N),2),bty='n',cex=0.8)
 dev.off()
 
 plot(x,log(L[,1]),type='l',ylim=log(ylim),ylab='log marginal hazard of fitted model',xlab='Age',main='Marginal hazard as function of bean size',col='white')
-for (j in 2:N) lines(x,log(L[,j]),col=colpal[j])
+for (j in 1:N) lines(x,log(L[,j]),col=colpal[j])
 lines(x,log(L0),col='gold',lwd=2,lty=2)
 legend('bottomright',legend=c('Bean size:',round(V,1),'Whole population'),col=c(NA,colpal,'gold'),lty=c(NA,rep(1,N),2),lwd=c(NA,rep(1,N),2),bty='n')
 
@@ -789,7 +789,7 @@ ylim=range(L[-1,])
 
 tiff(filename='./results/marginal_hazard_3_plot.tiff',width=res*6,height=res*4,compression ='lzw',res=res,units='px')
 par(mar=c(4,4,1,1))
-plot(x,log(L[,1]),type='l',ylim=log(ylim),ylab='log marginal hazard of fitted model',xlab='Age',main='Marginal hazard as function of adult body mass',col='white')
+plot(x,log(L[,1]),type='l',ylim=log(ylim),ylab='log marginal hazard of fitted model',xlab='Age',main='',col='white')
 for (j in 1:N) lines(x,log(L[,j]),col=colpal[j])
 lines(x,log(L0),col='green3',lwd=2,lty=1)
 legend('bottomright',legend=c('Adult body mass:',round(V,1),'Whole population'),col=c(NA,colpal,'green3'),lty=c(NA,rep(1,N),1),lwd=c(NA,rep(1,N),2),bty='n',cex=0.8)
@@ -913,8 +913,21 @@ for (h in seq_along(TwoWayTerms)){
 attr(BestModel,'formula')=Gformula
 
 ModelsTab
+to.save=rbind(cbind(rownames(ModelsTab[[1]]),ModelsTab[[1]]),
+              rep('',5),
+              rep('',5),
+              rep('',5),
+              c('',colnames(ModelsTab[[1]])),
+              cbind(rownames(ModelsTab[[2]]),ModelsTab[[2]]))
+write.csv(to.save,'./results/GiftSize_Model_Select.csv',row.names=F)
 BestModel
 Mod_ADD
+
+rownames(BestModel)
+Z=c('Theta (frailty par.)','Rho (Weibull shape par.)','Lambda (Weibull scale par.)','Sex (Males)',
+    'Bean size','Addult body mass','Gift size','Interaction (sex:Gift size)')
+write.csv(cbind(Z,round(BestModel,4)),'./results/Gift_BestModel.csv',row.names=F)
+
 
 vif.parfm(Mod_ADD,remove='lambda')
 vif.parfm(BestModel,remove='lambda')
@@ -930,35 +943,35 @@ test=my.predict.fit.parfm(Model=Model,Data=dscdane2,Var.Name='bean1',Value=150)
 #V=(seq(min(dscdane2$Giftsize),max(dscdane2$Giftsize), len=N))
 #V
 
-V=seq(0,0.5,0.05); N=length(V)
+
+#################### Animation for presentation + final plot ##########################
+range(dscdane2$Giftsize) #take value from rounded range
+V=seq(0,0.55,0.05); N=length(V)
 colpal=rev(sapply(seq(1,0.2,len=N),function(k) adjustcolor(col='white',green.f=0,alpha.f=k,red.f=k,blue.f=1-k^2)))
-
-L0.F=my.predict.fit.parfm(Model=Model,max.x=max(x),Data=dscdane2,Subset=dscdane2$sex=='Females')
-L0.M=my.predict.fit.parfm(Model=Model,max.x=max(x),Data=dscdane2,Subset=dscdane2$sex=='Males')
-L.F=sapply(V,function(my.gift) my.predict.fit.parfm(Model=Model,max.x=max(x),Data=dscdane2,Var.Name='Giftsize',Value=my.gift,Subset=dscdane2$sex=='Females'))
-L.M=sapply(V,function(my.gift) my.predict.fit.parfm(Model=Model,max.x=max(x),Data=dscdane2,Var.Name='Giftsize',Value=my.gift,Subset=dscdane2$sex=='Males'))
-ylim=range(L[-1,])
-
-plot(x,log(L[,1]),type='l',ylim=log(ylim),ylab='log marginal hazard',xlab='Age',main='Marginal hazard as function of gift size',col='white')
-for (j in 2:N) lines(x,log(L.F[,j]),col=colpal[j])
-for (j in 2:N) lines(x,log(L.M[,j]),col=colpal[j],lty=2)
-
-lines(x,log(L0.M),col='blue3',lwd=2,lty=2)
-lines(x,log(L0.F),col='green2',lwd=2,lty=1)
-legend('topleft',c('Females','Males'),col=c('green2','blue3'),lty=1:2,lwd=2,bty='n')
-legend('bottomright',legend=c('Gift size:',round(V,2)),col=c(NA,colpal),lty=c(NA,rep(1,N)),lwd=c(NA,rep(1,N)),bty='n')
-
-
-tiff(filename='./results/GiftModel_marginal_hazard_giftsize_plot.tiff',width=res*6,height=res*4,compression ='lzw',res=res,units='px')
-par(mar=c(4,4,1,1))
-plot(x,log(L[,1]),type='l',ylim=log(ylim),ylab='log marginal hazard',xlab='Age',main='Marginal hazard as function of gift size',col='white')
-for (j in 2:N) lines(x,log(L.F[,j]),col=colpal[j])
-for (j in 2:N) lines(x,log(L.M[,j]),col=colpal[j],lty=2)
-lines(x,log(L0.M),col='blue3',lwd=2,lty=2)
-lines(x,log(L0.F),col='green2',lwd=2,lty=1)
-legend('topleft',c('Females','Males'),col=c('green2','blue3'),lty=1:2,lwd=2,bty='n')
-legend('bottomright',legend=c('Gift size:',round(V,2)),col=c(NA,colpal),lty=c(NA,rep(1,N)),lwd=c(NA,rep(1,N)),bty='n',cex=0.75)
-dev.off()
+fram=0
+for (anim in c(0.15,0.35,0.55,0.55)) {
+  fram=fram+1
+  cat('Processing frame ',fram,' of 4\n')
+  V=seq(0,anim,0.05); N=length(V)
+  
+  L0.F=my.predict.fit.parfm(Model=Model,max.x=max(x),Data=dscdane2,Subset=dscdane2$sex=='Females')
+  L0.M=my.predict.fit.parfm(Model=Model,max.x=max(x),Data=dscdane2,Subset=dscdane2$sex=='Males')
+  L.F=sapply(V,function(my.gift) my.predict.fit.parfm(Model=Model,max.x=max(x),Data=dscdane2,Var.Name='Giftsize',Value=my.gift,Subset=dscdane2$sex=='Females'))
+  L.M=sapply(V,function(my.gift) my.predict.fit.parfm(Model=Model,max.x=max(x),Data=dscdane2,Var.Name='Giftsize',Value=my.gift,Subset=dscdane2$sex=='Males'))
+  ylim=range(L[-1,])
+  
+  tiff(filename=paste('./results/GiftModel_marginal_hazard_giftsize_anim_f',fram,'.tiff',sep=''),width=res*6,height=res*4,compression ='lzw',res=res,units='px')
+  par(mar=c(4,4,1,1))
+  plot(x,log(L[,1]),type='l',ylim=log(ylim),ylab='log marginal hazard',xlab='Age',main='',col='white')
+  for (j in 1:N) lines(x,log(L.F[,j]),col=colpal[j])
+  for (j in 1:N) lines(x,log(L.M[,j]),col=colpal[j],lty=2)
+  if (fram==4) lines(x,log(L0.M),col='blue3',lwd=3,lty=2)
+  if (fram==4) lines(x,log(L0.F),col='green2',lwd=3,lty=1)
+  if (fram==4) legend('topleft',c('Females','Males'),col=c('green2','blue3'),lty=1:2,lwd=2,bty='n') else
+    legend('topleft',c('Females','Males'),col=1,lty=1:2,lwd=1,bty='n')
+  legend('bottomright',legend=c('Gift size:',round(V,2)),col=c(NA,colpal),lty=c(NA,rep(1,N)),lwd=c(NA,rep(1,N)),bty='n',cex=0.75)
+  dev.off()
+}
 
 
 ###################################################################
