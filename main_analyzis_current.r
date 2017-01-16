@@ -660,6 +660,12 @@ noFr=eha:::phreg(formula = Formula, data = dscdane1, dist = distr, shape = 0, ce
 #parfm with no frailty of parfm package
 Mod_noFr<-my.parfm(Formula,frailty='none', dist=distr,     data = dscdane1)
 
+#######################################################
+#test for significance of frailty term
+round(my.LRT(Mod_,Mod_noFr),4)
+
+#######################################################
+
 #eha package has different coding of Weibull parameters, let's convert them
 L=length(noFr$coef)
 logshape <- as.numeric(noFr$coef[substr(names(noFr$coef), 5, 9) == "shape"])
@@ -904,6 +910,14 @@ rownames(BestModel)
 Z=c('Theta (frailty par.)','Rho (Weibull shape par.)','Lambda (Weibull scale par.)','Sex (Males)',
     'Bean size','Addult body mass','Gift size','Interaction (sex : gift size)')
 write.csv(cbind(Z,round(BestModel,4)),'./results/Gift_BestModel.csv',row.names=F)
+
+
+#######################################
+#significance of frailty 
+noFR_Gift=my.parfm(as.formula(attr(BestModel,'formula')),frailty='none',dist=distr,data = dscdane2)
+my.LRT(BestModel,noFR_Gift)
+#The frailty is not significant
+#######################################
 
 #testing variance inflation factor
 vif.parfm(BestModel,remove='lambda')
