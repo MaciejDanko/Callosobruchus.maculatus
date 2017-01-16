@@ -21,6 +21,7 @@ dscdane1=try(read.csv('dane1.csv'),silent=T)
 if(class(dscdane1)=='try-error') dscdane1=read.csv('C:/Users/Maciek/Documents/R-PRJ/DariuszMalek/dane1.csv')
 
 names(dscdane1)[1]='mother'
+head(dscdane1)
 dscdane1=dscdane1[,-c(7,10,11)] # remove not used columns
 dscdane1$sex=as.factor(c('Males','Females')[dscdane1$sex+1]) #originaly Males=0, Females=1
 dscdane1$tr=as.factor(c('Virgin','Reproducing')[dscdane1$tr+1]) #originaly Virgin=0, Reproducing=1
@@ -259,7 +260,7 @@ RF_2=WLK.test(sub.data,nsim=1e4) #method 2
 fitdistrplus:::plot.fitdist(FIT)
 
 WeiTe=cbind("KS Bootstrap*"=c(RF_1,VF_1,RM_1,VM_1),
-"Generalized Gamma**"=c(RF_2$p.value,VF_2$p.value,RM_2$p.value,VM_2$p.value))
+            "Generalized Gamma**"=c(RF_2$p.value,VF_2$p.value,RM_2$p.value,VM_2$p.value))
 rownames(WeiTe)=U
 WeiTe
 write.csv(cbind(U,round(WeiTe,4)),'./results/Weibull_test.csv',row.names=F)
@@ -341,6 +342,16 @@ write.csv(cbind(Z,round(Mod_,4)),'./results/BasicModel_i_test.csv',row.names=F)
 #predictor of interest and the remaining predictor variables included in 
 #the multiple regression analysis.
 
+#Vif can be used with any liner model (e.g logistic regression, coxph,...)
+#Because the concern is with the relationship among the independent variables, 
+#the functional form of the model for the dependent variable is irrelevant to 
+#the estimation of collinearity." (Menard 2002, p. 76). Menard, 2002. 
+#Applied logistic regression analysis, 2nd Ed." 
+#Found at: stata.com/statalist/archive/2009-09/msg00334.html
+
+#it needs only variance-covariance matrix as input parameter
+#run: rms:::vif
+
 #The fitted model should have an intercept, but intercept should be removed during vif computations
 #in parfm model the intercept is not directly defined, however it is equivalent to lambda value
 
@@ -349,7 +360,7 @@ names(v)=Z[-3]
 v
 write.csv(cbind(Ceof=names(v),VIF=round(v,2)),'./results/VIF.csv',row.names=F)
 
-#No strong evidence for colinearity, two values only slightly exceed 5. Assumed treshold is 10.
+#No strong evidence for collinearity, two values only slightly exceed 5. Assumed threshold is 10.
 #read: http://www.how2stats.net/2011/09/variance-inflation-factor-vif.html
 
 ####################################################################################################
@@ -471,13 +482,13 @@ LRT_sex_bean_mass
 ##################################
 
 Mod_tr_bean1_mass1<-my.parfm(Surv(timesurvived,status) ~ sex + 
-                                tr + bean1 + mass1 + sex:tr +tr:bean1:mass1,
-                              inip=c(iniP,0),
-                              iniFpar=iniFP,
-                              cluster='mother',
-                              frailty='gamma',
-                              dist=distr,
-                              data = dscdane1)
+                               tr + bean1 + mass1 + sex:tr +tr:bean1:mass1,
+                             inip=c(iniP,0),
+                             iniFpar=iniFP,
+                             cluster='mother',
+                             frailty='gamma',
+                             dist=distr,
+                             data = dscdane1)
 LRT_tr_bean_mass=my.LRT(obj1=Mod_tr_bean1_mass1,obj2=Mod_)
 LRT_tr_bean_mass
 #tr:bean1:mass1 is not significant, we don't have to include this interaction in the model
@@ -524,10 +535,10 @@ LRT_sex_tr_bean
 #sex:bean1:tr is not significant and doesn't have to be included into the model
 
 LRT_TAB=rbind(LRT_bean_mass,
-LRT_sex_mass,LRT_sex_bean,
-LRT_tr_mass,LRT_tr_bean,
-LRT_sex_tr_bean,LRT_sex_tr_mass,
-LRT_sex_bean_mass,LRT_tr_bean_mass)
+              LRT_sex_mass,LRT_sex_bean,
+              LRT_tr_mass,LRT_tr_bean,
+              LRT_sex_tr_bean,LRT_sex_tr_mass,
+              LRT_sex_bean_mass,LRT_tr_bean_mass)
 rnam=c('Bean size : adult body mass',
        'Sex : adult body mass',
        'Sex : bean size',
@@ -576,7 +587,7 @@ D
 ###############################################
 
 #The p-values returned in parfm/my.parfm output are calculated from MLE of parameters and 
-#their assyptotic standar errors ("logL hessian method"). 
+#their asymptotic standard errors ("logL hessian method"). 
 #They are based on Wald t (or t ratio statistic)
 
 #More "reliable" p-values are based on LRT
@@ -728,7 +739,7 @@ legend('bottomright',legend=c('Bean size:',round(V,1),'Whole population'),col=c(
 
 #############################################################################################
 #predicted marginal hazard for different values of adult body size (within range of the data)
-#calcualted as marginal hazards for mass1 and bean1
+#calculated as marginal hazards for mass1 and bean1
 #############################################################################################
 #Marginal hazards for bean size, sex and treatment as a function of adult body size, suggested plot for publication
 N=10
@@ -811,7 +822,7 @@ head(dscdane1)
 dscdane2=subset(dscdane1,subset=(tr=='Reproducing'))
 dscdane2$Giftsize=abs(dscdane2$Giftsize) #remove minus from the data
 
-#Testing some correlations, substancial correlations can affect model estimation
+#Testing some correlations, substantial correlations can affect model estimation
 cor(dscdane2$Giftsize,dscdane2$mass1)
 cor(dscdane2$Giftsize,dscdane2$bean1)
 cor(dscdane2$mass1,dscdane2$bean1)
@@ -827,7 +838,7 @@ cor(dscdane2$mass1,dscdane2$bean1)
 Gformula='Surv(timesurvived,status) ~ sex + Giftsize + bean1 + mass1'
 Mod_ADD<-my.parfm(as.formula(Gformula),cluster='mother',frailty='gamma',dist=distr,data = dscdane2)
 gT=attributes(Mod_ADD)$terms
-TwoWayTerms=combn(gT,2) #only two-way interaction will be analized in herarchical LRT
+TwoWayTerms=combn(gT,2) #only two-way interaction will be analyzed in hierarchical LRT
 TwoWayTerms=apply(TwoWayTerms, 2, paste, collapse = ":")
 
 #Hierarchical LRT
@@ -868,7 +879,7 @@ ModelsTab
 
 #rename rows for saving
 RN1=c('Sex : gift size','Sex : bean size','Sex : Adult body mass','Gift size : bean size',
-  'Gift size : Adult body mass', 'Bean size : Adult body mass')
+      'Gift size : Adult body mass', 'Bean size : Adult body mass')
 #checking
 cbind(rownames(ModelsTab[[1]]),RN1)
 
@@ -897,6 +908,12 @@ write.csv(cbind(Z,round(BestModel,4)),'./results/Gift_BestModel.csv',row.names=F
 #testing variance inflation factor
 vif.parfm(BestModel,remove='lambda')
 #vif is slightly higher than the treshold of 10, but not very much
+
+################To be done in next version #################3
+#becouse of high VIF
+#1) do LRT for bean1 and mass1
+#2) dropp them from the model if they are not significant
+#3) as a result VIF should be lower than 10
 
 ##############################################################
 #plotting effect of GiftSize at different sexes
@@ -974,7 +991,7 @@ for (j in 1:3) {  # residual plots
 
 b = c(Model[rownames(Model)=="mass1",1],Model[rownames(Model)=="bean1",1],Model[rownames(Model)=="Giftsize",1])
 for (j in 1:3) {  # component-plus-residual plots
-  plot(X[, j], b[j]*X[, j] + residu, xlab=c("Aduld body mass", "Bean size", "Gift size")[j],
+  plot(X[, j], b[j]*X[, j] + residu, xlab=c("Adult body mass", "Bean size", "Gift size")[j],
        ylab="Component + residual",ylim=c(-6,2))
   abline(lm(b[j]*X[, j] + residu ~ X[, j]), lty=2)
   lines(lowess(X[, j], b[j]*X[, j] + residu, iter=0),col=2)

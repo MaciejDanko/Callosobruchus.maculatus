@@ -15,9 +15,13 @@ my.LRT<-function(obj1,obj2){
   Z
 }
 
+#extracting variance covariance matrix, it works only with my.parfm() it does not work with parfm()
 vcov.parfm<-function(fit) attributes(fit)$varcov
 
-vif.parfm<-function (fit,remove=c('theta','rho','lambda')) {
+#Variance Inflation Factor routines based on rms:::vif() function
+#remove should contain name of equivalent of the intercept
+#for Weibull it is "lmbda" parameter
+vif.parfm<-function (fit,remove=c('lambda')) {
   #read: Davis CE, Hyde JE, Bangdiwala SI, Nelson JJ: 
   #An example of dependencies among variables in a conditional 
   #logistic regression. In Modern Statistical Methods in Chronic Disease Epidemiology, 
@@ -28,11 +32,9 @@ vif.parfm<-function (fit,remove=c('theta','rho','lambda')) {
   nam <- dimnames(fit)[[1]]
   dimnames(v)=list(nam,nam)
   
-  #there is no intercept so don't have to drop it
-  
+  #dropping equivalent of intercept given in remove par
   pos=sapply(remove,function(k) which(nam==k))
   if (length(pos)>0) {
-    #Droping baseline and frailty parameters on demand
     v=v[-pos,-pos]
     nam=nam[-pos]
   }
@@ -43,7 +45,7 @@ vif.parfm<-function (fit,remove=c('theta','rho','lambda')) {
   v
 }
 
-
+#function to split string (txt) accoring to given character (char)
 splitstr<-function(char,txt){
   (sapply(seq_along(txt),function(j){
     char=substr(char,1,1)
@@ -69,6 +71,7 @@ colProds<-function(M) apply(M,2,prod)
 #Model = model ftted by my.parfm
 
 #rm(list=c('f1','ZZ','mm','j','rho','lambda','Terms','Terms2','T1','T2','ind','k','coefi','new_mm','y'))
+#l.p - linear predictors not tested yet, 
 my.predict.fit.parfm<-function(Model,Data,max.x=NULL,Var.Name=NULL,Value=NULL,Type=c('marginal','l.p'),Subset=NULL){
   Type=Type[1]
   if (length(Subset)>0) Data=subset(Data,Subset)
@@ -127,8 +130,11 @@ my.predict.fit.parfm<-function(Model,Data,max.x=NULL,Var.Name=NULL,Value=NULL,Ty
   y
 }
 
-#Function under construction. Calcualtes only martingale now
-#Only Weibull model! "data" must be included in function call
+#Calculate Martingale residuals for the fit obtained from my.parfm()
+#Function under construction
+# - Calcualtes only martingale now
+# - Only Weibull model! 
+# - "data" must be included in function call
 #Fit = model ftted by my.parfm
 my.residuals.parfm<-function(fit, type='martingale'){
   if (attributes(fit)$dist!='weibull') stop('Only weibull implemented so far')
@@ -169,6 +175,7 @@ my.residuals.parfm<-function(fit, type='martingale'){
 }
 
 #Improved optim function that can solve some convergence problems
+#Under construction. In next version an option for controling negative vaiance problem will be added
 toptim<-function(par,control,method,...,max.times=10,min.times=3) {
   cat(method,': ')
   orgmethod=method
@@ -189,10 +196,10 @@ toptim<-function(par,control,method,...,max.times=10,min.times=3) {
   R
 }
 
-#My optimization function for parfm (uses toptim())
+#My optimization function for my.parfm() (uses toptim())
 my.optim<-function(par,fn,obs,dist,frailty,correct,lower,upper,do.DE.optim=FALSE,method='BFGS',hessian=TRUE,control=list()){
   #run several methods of optimization
-  #hessian is true to predict some errors
+  #hessian is set to true to predict some errors (will be removed in next version)
   Res1=suppressWarnings(try(toptim(par=par,fn=parfm:::Mloglikelihood,gr=NULL,method="Nelder-Mead",hessian=TRUE,control=control,lower=-Inf,upper=Inf,
                     obs=obs,dist=dist,frailty=frailty,correct=correct),silent=T))
   tmpRes1=Res1
@@ -221,7 +228,7 @@ my.optim<-function(par,fn,obs,dist,frailty,correct,lower,upper,do.DE.optim=FALSE
   Res
 }
 
-#rewrited from parfm package
+#rewritten from parfm package
 weibull<-function (pars, t, what) {
   if (what == "H") 
     return(pars[2] * t^(pars[1]))
@@ -230,7 +237,7 @@ weibull<-function (pars, t, what) {
                                             log(t)))
 }
 
-#rewrited from parfm package
+#rewritten from parfm package
 gompertz<-function (pars, t, what) {
   if (what == "H") 
     return(pars[2]/pars[1] * (exp(pars[1] * t) - 1))
@@ -402,6 +409,7 @@ my.Mloglikelihood<-function (p, obs, dist, frailty, correct) {
 
 #parfm function copied and modified from parfm package
 #Modifications: 
+#0) use my.optim as default
 #1) adding posiblity to change optimization procedures, init: optim=my.optim 
 #  all necessary parameters icncluded in optim() call
 #2) automatic calcualtion of lower and upper bounds for parameters, needed by DE optimization
