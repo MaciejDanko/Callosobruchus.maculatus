@@ -59,6 +59,22 @@ csf=npsurv(Surv(timesurvived,status) ~ sex + tr, data = dscdane1)
 plot(csf,col=1:4)
 legend('bottomleft',legend=U,col=1:4,lty=1,lwd=2,bty='n',y.intersp = 1.1)
 
+quantile(dscdane1$bean1)
+Q=quantile(dscdane1$bean1,seq(0,1,len=4))
+Q[1]=Q[1]*0.99;Q[length(Q)]=Q[length(Q)]*1.01
+BEAN.cat=cut(dscdane1$bean1,Q)
+csf=npsurv(Surv(timesurvived,status) ~ BEAN.cat, data = dscdane1) #with you add sex qualitatively the same
+plot(csf,col=1:6, main='Bean size')
+legend('bottomleft',legend=levels(BEAN.cat),col=1:6,lty=1,lwd=2,bty='n',y.intersp = 1.1)
+
+quantile(dscdane1$mass1)
+Q=quantile(dscdane1$mass1,seq(0,1,len=4))
+Q[1]=Q[1]*0.99;Q[length(Q)]=Q[length(Q)]*1.01
+MASS.cat=cut(dscdane1$mass1,Q)
+csf=npsurv(Surv(timesurvived,status) ~ MASS.cat, data = dscdane1) #with you ad sex qualitatively the same
+plot(csf,col=1:6, main='Adult size')
+legend('bottomleft',legend=levels(MASS.cat),col=1:6,lty=1,lwd=2,bty='n',y.intersp = 1.1)
+
 
 tiff(filename='./results/log-log_plot.tiff',width=res*6,height=res*4,compression ='lzw',res=res,units='px')
 par(mar=c(4,4,1,1))
@@ -915,7 +931,7 @@ write.csv(cbind(Z,round(BestModel,4)),'./results/Gift_BestModel.csv',row.names=F
 #######################################
 #significance of frailty 
 noFR_Gift=my.parfm(as.formula(attr(BestModel,'formula')),frailty='none',dist=distr,data = dscdane2)
-my.LRT(BestModel,noFR_Gift)
+round(my.LRT(BestModel,noFR_Gift),4)
 #The frailty is not significant
 #######################################
 
