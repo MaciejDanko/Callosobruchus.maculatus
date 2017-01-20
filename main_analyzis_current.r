@@ -52,13 +52,14 @@ options(contrasts = c("contr.treatment","contr.poly"))
 ########################################
 
 ###########################
-#1) log-log plots for categorical variables
+#0) surv plots for categorical or categorized variables
 ###########################
 
 csf=npsurv(Surv(timesurvived,status) ~ sex + tr, data = dscdane1)
 plot(csf,col=1:4)
 legend('bottomleft',legend=U,col=1:4,lty=1,lwd=2,bty='n',y.intersp = 1.1)
 
+#Bean size 
 quantile(dscdane1$bean1)
 Q=quantile(dscdane1$bean1,seq(0,1,len=4))
 Q[1]=Q[1]*0.99;Q[length(Q)]=Q[length(Q)]*1.01
@@ -67,6 +68,73 @@ csf=npsurv(Surv(timesurvived,status) ~ BEAN.cat, data = dscdane1) #with you add 
 plot(csf,col=1:6, main='Bean size')
 legend('bottomleft',legend=levels(BEAN.cat),col=1:6,lty=1,lwd=2,bty='n',y.intersp = 1.1)
 
+#BeanSize : Sex separately
+Q.M=quantile(dscdane1$bean1[dscdane1$sex=='Males'],seq(0,1,len=4))
+Q.M[1]=Q.M[1]*0.99;Q.M[length(Q.M)]=Q.M[length(Q.M)]*1.01
+BEAN.M.cat=paste('M.',cut(dscdane1$bean1[dscdane1$sex=='Males'],Q.M),sep='')
+Q.F=quantile(dscdane1$bean1[dscdane1$sex=='Females'],seq(0,1,len=4))
+Q.F[1]=Q.F[1]*0.99;Q.F[length(Q.F)]=Q.F[length(Q.F)]*1.01
+BEAN.F.cat=paste('F.',cut(dscdane1$bean1[dscdane1$sex=='Females'],Q.F),sep='')
+BEAN.B.cat=dscdane1$bean1
+BEAN.B.cat[dscdane1$sex=='Females']=BEAN.F.cat
+BEAN.B.cat[dscdane1$sex=='Males']=BEAN.M.cat
+csf=npsurv(Surv(timesurvived,status) ~ BEAN.B.cat, data = dscdane1) #with you ad sex qualitatively the same
+plot(csf,col=1:3, main='Bean size',lty=c(rep(1,3),rep(2,3)))
+legend('bottomleft',legend=levels(as.factor(BEAN.B.cat)),col=1:3,lty=c(rep(1,3),rep(2,3)),lwd=2,bty='n',y.intersp = 1.1)
+
+#BeanSize : Treatment separately
+Q.V=quantile(dscdane1$bean1[dscdane1$tr=='Virgin'],seq(0,1,len=4))
+Q.V[1]=Q.V[1]*0.99;Q.V[length(Q.V)]=Q.V[length(Q.V)]*1.01
+BEAN.V.cat=paste('V.',cut(dscdane1$bean1[dscdane1$tr=='Virgin'],Q.V),sep='')
+Q.R=quantile(dscdane1$bean1[dscdane1$tr=='Reproducing'],seq(0,1,len=4))
+Q.R[1]=Q.R[1]*0.99;Q.R[length(Q.R)]=Q.R[length(Q.R)]*1.01
+BEAN.R.cat=paste('R.',cut(dscdane1$bean1[dscdane1$tr=='Reproducing'],Q.R),sep='')
+BEAN.B.cat=dscdane1$bean1
+BEAN.B.cat[dscdane1$tr=='Reproducing']=BEAN.R.cat
+BEAN.B.cat[dscdane1$tr=='Virgin']=BEAN.V.cat
+csf=npsurv(Surv(timesurvived,status) ~ BEAN.B.cat, data = dscdane1) #with you ad sex qualitatively the same
+plot(csf,col=1:3, main='Bean size',lty=c(rep(1,3),rep(2,3)))
+legend('bottomleft',legend=levels(as.factor(BEAN.B.cat)),col=1:3,lty=c(rep(1,3),rep(2,3)),lwd=2,bty='n',y.intersp = 1.1)
+
+
+#Bean size: Treatment and sexseparately
+Q.V.M=quantile(dscdane1$bean1[dscdane1$tr=='Virgin'&dscdane1$sex=='Males'],seq(0,1,len=4))
+Q.V.M[1]=Q.V.M[1]*0.99;Q.V.M[length(Q.V.M)]=Q.V.M[length(Q.V.M)]*1.01
+BEAN.V.M.cat=paste('V.M.',cut(dscdane1$bean1[dscdane1$tr=='Virgin'&dscdane1$sex=='Males'],Q.V.M),sep='')
+
+Q.V.F=quantile(dscdane1$bean1[dscdane1$tr=='Virgin'&dscdane1$sex=='Females'],seq(0,1,len=4))
+Q.V.F[1]=Q.V.F[1]*0.99;Q.V.F[length(Q.V.F)]=Q.V.F[length(Q.V.F)]*1.01
+BEAN.V.F.cat=paste('V.F.',cut(dscdane1$bean1[dscdane1$tr=='Virgin'&dscdane1$sex=='Females'],Q.V.F),sep='')
+
+Q.R.M=quantile(dscdane1$bean1[dscdane1$tr=='Reproducing'&dscdane1$sex=='Males'],seq(0,1,len=4))
+Q.R.M[1]=Q.R.M[1]*0.99;Q.R.M[length(Q.R.M)]=Q.R.M[length(Q.R.M)]*1.01
+BEAN.R.M.cat=paste('R.M.',cut(dscdane1$bean1[dscdane1$tr=='Reproducing'&dscdane1$sex=='Males'],Q.R.M),sep='')
+
+Q.R.F=quantile(dscdane1$bean1[dscdane1$tr=='Reproducing'&dscdane1$sex=='Females'],seq(0,1,len=4))
+Q.R.F[1]=Q.R.F[1]*0.99;Q.R.F[length(Q.R.F)]=Q.R.F[length(Q.R.F)]*1.01
+BEAN.R.F.cat=paste('R.F.',cut(dscdane1$bean1[dscdane1$tr=='Reproducing'&dscdane1$sex=='Females'],Q.R.F),sep='')
+
+BEAN.B.F.cat=dscdane1$bean1*NA
+BEAN.B.F.cat[dscdane1$tr=='Reproducing'&dscdane1$sex=='Females']=BEAN.R.F.cat
+BEAN.B.F.cat[dscdane1$tr=='Virgin'&dscdane1$sex=='Females']=BEAN.V.F.cat
+ind.F=!is.na(BEAN.B.F.cat)
+BEAN.B.M.cat=dscdane1$bean1*NA
+BEAN.B.M.cat[dscdane1$tr=='Reproducing'&dscdane1$sex=='Males']=BEAN.R.M.cat
+BEAN.B.M.cat[dscdane1$tr=='Virgin'&dscdane1$sex=='Males']=BEAN.V.M.cat
+ind.M=!is.na(BEAN.B.M.cat)
+
+csf.F=npsurv(Surv(timesurvived,status) ~ BEAN.B.F.cat[ind.F], data = dscdane1[ind.F,]) 
+csf.M=npsurv(Surv(timesurvived,status) ~ BEAN.B.M.cat[ind.M], data = dscdane1[ind.M,]) 
+
+par(mfrow=c(2,1))
+plot(csf.F,col=1:3, main='Adult females size',lty=c(rep(1,3),rep(2,3)))
+legend('bottomleft',legend=levels(as.factor(BEAN.B.F.cat)),col=1:3,lty=c(rep(1,3),rep(2,3)),lwd=2,bty='n',y.intersp = 1.1,cex=0.6)
+plot(csf.M,col=1:3, main='Adult males size',lty=c(rep(1,3),rep(2,3)))
+legend('bottomleft',legend=levels(as.factor(BEAN.B.F.cat)),col=1:3,lty=c(rep(1,3),rep(2,3)),lwd=2,bty='n',y.intersp = 1.1,cex=0.6)
+par(mfrow=c(1,1))
+
+
+#Body mass
 quantile(dscdane1$mass1)
 Q=quantile(dscdane1$mass1,seq(0,1,len=4))
 Q[1]=Q[1]*0.99;Q[length(Q)]=Q[length(Q)]*1.01
@@ -75,7 +143,76 @@ csf=npsurv(Surv(timesurvived,status) ~ MASS.cat, data = dscdane1) #with you ad s
 plot(csf,col=1:6, main='Adult size')
 legend('bottomleft',legend=levels(MASS.cat),col=1:6,lty=1,lwd=2,bty='n',y.intersp = 1.1)
 
+#Body mass: Sex separately
+Q.M=quantile(dscdane1$mass1[dscdane1$sex=='Males'],seq(0,1,len=4))
+Q.M[1]=Q.M[1]*0.99;Q.M[length(Q.M)]=Q.M[length(Q.M)]*1.01
+MASS.M.cat=paste('M.',cut(dscdane1$mass1[dscdane1$sex=='Males'],Q.M),sep='')
+Q.F=quantile(dscdane1$mass1[dscdane1$sex=='Females'],seq(0,1,len=4))
+Q.F[1]=Q.F[1]*0.99;Q.F[length(Q.F)]=Q.F[length(Q.F)]*1.01
+MASS.F.cat=paste('F.',cut(dscdane1$mass1[dscdane1$sex=='Females'],Q.F),sep='')
+MASS.B.cat=dscdane1$mass1
+MASS.B.cat[dscdane1$sex=='Females']=MASS.F.cat
+MASS.B.cat[dscdane1$sex=='Males']=MASS.M.cat
+csf=npsurv(Surv(timesurvived,status) ~ MASS.B.cat, data = dscdane1) #with you ad sex qualitatively the same
+plot(csf,col=1:3, main='Adult size',lty=c(rep(1,3),rep(2,3)))
+legend('bottomleft',legend=levels(as.factor(MASS.B.cat)),col=1:3,lty=c(rep(1,3),rep(2,3)),lwd=2,bty='n',y.intersp = 1.1)
 
+#Body mass: Treatment separately
+Q.V=quantile(dscdane1$mass1[dscdane1$tr=='Virgin'],seq(0,1,len=4))
+Q.V[1]=Q.V[1]*0.99;Q.V[length(Q.V)]=Q.V[length(Q.V)]*1.01
+MASS.V.cat=paste('V.',cut(dscdane1$mass1[dscdane1$tr=='Virgin'],Q.V),sep='')
+Q.R=quantile(dscdane1$mass1[dscdane1$tr=='Reproducing'],seq(0,1,len=4))
+Q.R[1]=Q.R[1]*0.99;Q.R[length(Q.R)]=Q.R[length(Q.R)]*1.01
+MASS.R.cat=paste('R.',cut(dscdane1$mass1[dscdane1$tr=='Reproducing'],Q.R),sep='')
+MASS.B.cat=dscdane1$mass1
+MASS.B.cat[dscdane1$tr=='Reproducing']=MASS.R.cat
+MASS.B.cat[dscdane1$tr=='Virgin']=MASS.V.cat
+csf=npsurv(Surv(timesurvived,status) ~ MASS.B.cat, data = dscdane1) #with you ad sex qualitatively the same
+plot(csf,col=1:3, main='Adult size',lty=c(rep(1,3),rep(2,3)))
+legend('bottomleft',legend=levels(as.factor(MASS.B.cat)),col=1:3,lty=c(rep(1,3),rep(2,3)),lwd=2,bty='n',y.intersp = 1.1)
+
+#Body mass: Treatment and sexseparately
+Q.V.M=quantile(dscdane1$mass1[dscdane1$tr=='Virgin'&dscdane1$sex=='Males'],seq(0,1,len=4))
+Q.V.M[1]=Q.V.M[1]*0.99;Q.V.M[length(Q.V.M)]=Q.V.M[length(Q.V.M)]*1.01
+MASS.V.M.cat=paste('V.M.',cut(dscdane1$mass1[dscdane1$tr=='Virgin'&dscdane1$sex=='Males'],Q.V.M),sep='')
+
+Q.V.F=quantile(dscdane1$mass1[dscdane1$tr=='Virgin'&dscdane1$sex=='Females'],seq(0,1,len=4))
+Q.V.F[1]=Q.V.F[1]*0.99;Q.V.F[length(Q.V.F)]=Q.V.F[length(Q.V.F)]*1.01
+MASS.V.F.cat=paste('V.F.',cut(dscdane1$mass1[dscdane1$tr=='Virgin'&dscdane1$sex=='Females'],Q.V.F),sep='')
+
+Q.R.M=quantile(dscdane1$mass1[dscdane1$tr=='Reproducing'&dscdane1$sex=='Males'],seq(0,1,len=4))
+Q.R.M[1]=Q.R.M[1]*0.99;Q.R.M[length(Q.R.M)]=Q.R.M[length(Q.R.M)]*1.01
+MASS.R.M.cat=paste('R.M.',cut(dscdane1$mass1[dscdane1$tr=='Reproducing'&dscdane1$sex=='Males'],Q.R.M),sep='')
+
+Q.R.F=quantile(dscdane1$mass1[dscdane1$tr=='Reproducing'&dscdane1$sex=='Females'],seq(0,1,len=4))
+Q.R.F[1]=Q.R.F[1]*0.99;Q.R.F[length(Q.R.F)]=Q.R.F[length(Q.R.F)]*1.01
+MASS.R.F.cat=paste('R.F.',cut(dscdane1$mass1[dscdane1$tr=='Reproducing'&dscdane1$sex=='Females'],Q.R.F),sep='')
+
+MASS.B.F.cat=dscdane1$mass1*NA
+MASS.B.F.cat[dscdane1$tr=='Reproducing'&dscdane1$sex=='Females']=MASS.R.F.cat
+MASS.B.F.cat[dscdane1$tr=='Virgin'&dscdane1$sex=='Females']=MASS.V.F.cat
+ind.F=!is.na(MASS.B.F.cat)
+MASS.B.M.cat=dscdane1$mass1*NA
+MASS.B.M.cat[dscdane1$tr=='Reproducing'&dscdane1$sex=='Males']=MASS.R.M.cat
+MASS.B.M.cat[dscdane1$tr=='Virgin'&dscdane1$sex=='Males']=MASS.V.M.cat
+ind.M=!is.na(MASS.B.M.cat)
+
+csf.F=npsurv(Surv(timesurvived,status) ~ MASS.B.F.cat[ind.F], data = dscdane1[ind.F,]) 
+csf.M=npsurv(Surv(timesurvived,status) ~ MASS.B.M.cat[ind.M], data = dscdane1[ind.M,]) 
+
+par(mfrow=c(2,1))
+plot(csf.F,col=1:3, main='Adult females size',lty=c(rep(1,3),rep(2,3)))
+legend('bottomleft',legend=levels(as.factor(MASS.B.F.cat)),col=1:3,lty=c(rep(1,3),rep(2,3)),lwd=2,bty='n',y.intersp = 1.1,cex=0.6)
+plot(csf.M,col=1:3, main='Adult males size',lty=c(rep(1,3),rep(2,3)))
+legend('bottomleft',legend=levels(as.factor(MASS.B.F.cat)),col=1:3,lty=c(rep(1,3),rep(2,3)),lwd=2,bty='n',y.intersp = 1.1,cex=0.6)
+par(mfrow=c(1,1))
+
+
+###########################
+#1) log-log plots for categorical variables
+###########################
+
+###############################################################3
 tiff(filename='./results/log-log_plot.tiff',width=res*6,height=res*4,compression ='lzw',res=res,units='px')
 par(mar=c(4,4,1,1))
 survplot(csf,col=1:4,loglog=T,logt=T,xlim=c(1.5,3.5),
